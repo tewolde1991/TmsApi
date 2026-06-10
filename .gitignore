@@ -1,0 +1,8 @@
+bin/
+obj/
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local
