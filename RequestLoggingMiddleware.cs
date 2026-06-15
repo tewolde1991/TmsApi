@@ -45,7 +45,7 @@
 
 // }
 
-// namespace TmsApi;
+namespace TmsApi;
 using System.Diagnostics;
 
 public class RequestLoggingMiddleware
