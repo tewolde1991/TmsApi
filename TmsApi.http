@@ -2,4 +2,6 @@
 GET {{TmsApi_HostAddress}}/api/assessments/results
 Accept: application/json
 
+
+POST {{TmsApi_HostAddress}}/api/test/enroll
 ###

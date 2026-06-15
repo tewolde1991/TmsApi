@@ -3,9 +3,13 @@ using Microsoft.AspNetCore.Authentication;
 using TmsApi;
 // using TmsApi.Data;
 // using TmsApi.Services;
-
+//m4 s2 this up...
 var builder = WebApplication.CreateBuilder(args);
-
+builder.Services.AddOptions<PaymentOptions>()
+    .BindConfiguration("Payments")
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+// .. this m4 s2
 // ========== 1. Add DbContext (Scoped by default) ==========
 // builder.Services.AddDbContext<TMSDbContext>(options =>
 // options.UseInMemoryDatabase("TmsMemoryDb"));   // In-memory for testing
@@ -61,4 +65,28 @@ app.MapGet("/api/assessments/results", () => Results.Ok(new
 
 app.MapControllers();  // if you have any controllers
 
+app.Run();
+
+// m4-s2
+// var builder = WebApplication.CreateBuilder(args);
+
+// ... ሌሎች builder.Services lines (Session 1 ካለ) ...
+
+builder.Services.AddSingleton<EnrollmentWorker>();
+builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
+
+builder.Host.UseDefaultServiceProvider(options =>
+{
+  options.ValidateScopes = true;
+  options.ValidateOnBuild = true;
+});
+
+// var app = builder.Build();
+app.MapPost("/api/test/enroll", async (IEnrollmentService svc) =>
+{
+  await svc.EnrollAsync("S-001", "CS-101");      // → Information
+  await svc.EnrollAsync("S-001", "CS-101");      // → Warning (duplicate)
+  await svc.GetByIdAsync("does-not-exist");      // → Warning (not found)
+  return Results.Ok("done");
+});
 app.Run();
