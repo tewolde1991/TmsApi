@@ -66,3 +66,31 @@ GET {{TmsApi_HostAddress}}/api/students/{id-here}
 
 ### DELETE student
 DELETE {{TmsApi_HostAddress}}/api/students/{id-here}
+
+
+// Course
+
+### GET all courses
+GET {{TmsApi_HostAddress}}/api/courses
+
+###
+
+### POST new course
+POST {{TmsApi_HostAddress}}/api/courses
+Content-Type: application/json
+
+{
+  "courseCode": "CS-102",
+  "title": "Fun Programming",
+  "credits": 3
+}
+
+###
+
+### GET course by id (use id from POST response)
+GET {{TmsApi_HostAddress}}/api/courses/b310f0f9
+
+###
+
+### DELETE course
+DELETE {{TmsApi_HostAddress}}/api/courses/b310f0f9

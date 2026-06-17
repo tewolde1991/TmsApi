@@ -39,6 +39,7 @@ builder.Host.UseDefaultServiceProvider(options =>
 builder.Services.AddControllers();
 builder.Services.AddSingleton<IStudentService, StudentService>();
 // builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
+builder.Services.AddSingleton<ICourseService, CourseService>();
 var app = builder.Build();
 
 // ========== Middleware pipeline (from Session 1) ==========

@@ -1,17 +1,21 @@
 using Microsoft.AspNetCore.Mvc;
+
+public record Student(string Id, string FirstName, string LastName, string Email);
+
+public record CreateStudentRequest(string FirstName, string LastName, string Email);
 [ApiController]
 [Route("api/students")]
 public class StudentsController(IStudentService studentService) : ControllerBase
 {
-  // GET  /api/students
+  // GET /api/students
   [HttpGet]
   public async Task<IActionResult> GetAll()
-
   {
     var students = await studentService.GetAllAsync();
     return Ok(students);
   }
-  //  /api/students/{id}
+
+  // GET /api/students/{id}
   [HttpGet("{id}")]
   public async Task<IActionResult> GetById(string id)
   {
@@ -35,5 +39,3 @@ public class StudentsController(IStudentService studentService) : ControllerBase
     return deleted ? NoContent() : NotFound();
   }
 }
-public record Student(string Id, string FirstName, string LastName, string Email);
-public record CreateStudentRequest(string FirstName, string LastName, string Email);
