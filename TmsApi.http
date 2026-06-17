@@ -16,7 +16,6 @@ X-Training-User:
 ### 2. POST new enrollment
 POST {{TmsApi_HostAddress}}/api/enrollments/
 Content-Type: application/json
-X-Training-User: 
 
 {
   "studentId": "S-001",
@@ -26,17 +25,17 @@ X-Training-User:
 ###
 
 ### 3. GET by id (ከ POST response ላይ id ይቅዱ)
-GET {{TmsApi_HostAddress}}/api/enrollments/{id}
+GET {{TmsApi_HostAddress}}/api/enrollments/08c774f9
 X-Training-User: 
 
 ###
 
 ### 4. DELETE
-DELETE {{TmsApi_HostAddress}}/api/enrollments/{id}
+DELETE {{TmsApi_HostAddress}}/api/enrollments/
 X-Training-User: 
 
 ###
 
 ### 5. GET deleted (404 )
-GET {{TmsApi_HostAddress}}/api/enrollments/{id}
+GET {{TmsApi_HostAddress}}/api/enrollments/08c774f9
 X-Training-User: 

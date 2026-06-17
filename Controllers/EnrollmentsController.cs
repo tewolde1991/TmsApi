@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-
 [ApiController]
 [Route("/api/enrollments")]
 public class EnrollmentsController(IEnrollmentService enrollmentService) : ControllerBase

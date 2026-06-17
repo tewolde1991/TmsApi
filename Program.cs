@@ -15,8 +15,8 @@ builder.Services.AddOptions<PaymentOptions>()
 // options.UseInMemoryDatabase("TmsMemoryDb"));   // In-memory for testing
 
 // ========== 2. Register services with CORRECT lifetimes ==========
-// builder.Services.AddSingleton
-// <IEnrollmentService, EnrollmentService>();      // Scoped (uses DbContext)
+builder.Services.AddSingleton
+<IEnrollmentService, EnrollmentService>();      // Scoped (uses DbContext)
 // builder.Services.AddTransient<IGradeCalculator, GradeCalculator>();       // Transient (stateless)
 // builder.Services.AddSingleton<IConfigReader, ConfigReader>();             // Singleton (immutable config)
 
@@ -37,7 +37,7 @@ builder.Host.UseDefaultServiceProvider(options =>
 
 // ========== 6. Add controllers (if you have any) ==========
 builder.Services.AddControllers();
-
+// builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 var app = builder.Build();
 
 // ========== Middleware pipeline (from Session 1) ==========
@@ -82,11 +82,11 @@ app.MapControllers();  // if you have any controllers
 // });
 
 // var app = builder.Build();
-app.MapPost("/api/enrollments/", async (IEnrollmentService svc) =>
-{
-  await svc.EnrollAsync("S-001", "CS-101");      // → Information
-  await svc.EnrollAsync("S-001", "CS-101");      // → Warning (duplicate)
-  await svc.GetByIdAsync("does-not-exist");      // → Warning (not found)
-  return Results.Ok("done");
-});
+// app.MapPost("/api/enrollments/", async (IEnrollmentService svc) =>
+// {
+//   await svc.EnrollAsync("S-001", "CS-101");      // → Information
+//   await svc.EnrollAsync("S-001", "CS-101");      // → Warning (duplicate)
+//   await svc.GetByIdAsync("does-not-exist");      // → Warning (not found)
+//   return Results.Ok("done");
+// });
 app.Run();
