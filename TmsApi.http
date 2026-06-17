@@ -5,3 +5,38 @@ Accept: application/json
 
 POST {{TmsApi_HostAddress}}/api/test/enroll
 ###
+
+
+### 1. GET all — empty array
+GET {{TmsApi_HostAddress}}/api/enrollments
+X-Training-User: 
+
+###
+
+### 2. POST new enrollment
+POST {{TmsApi_HostAddress}}/api/enrollments/
+Content-Type: application/json
+X-Training-User: 
+
+{
+  "studentId": "S-001",
+  "courseCode": "CS-101"
+}
+
+###
+
+### 3. GET by id (ከ POST response ላይ id ይቅዱ)
+GET {{TmsApi_HostAddress}}/api/enrollments/{id}
+X-Training-User: 
+
+###
+
+### 4. DELETE
+DELETE {{TmsApi_HostAddress}}/api/enrollments/{id}
+X-Training-User: 
+
+###
+
+### 5. GET deleted (404 )
+GET {{TmsApi_HostAddress}}/api/enrollments/{id}
+X-Training-User: 

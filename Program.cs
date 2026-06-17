@@ -65,24 +65,24 @@ app.MapGet("/api/assessments/results", () => Results.Ok(new
 
 app.MapControllers();  // if you have any controllers
 
-app.Run();
+// app.Run();
 
 // m4-s2
 // var builder = WebApplication.CreateBuilder(args);
 
 // ... ሌሎች builder.Services lines (Session 1 ካለ) ...
 
-builder.Services.AddSingleton<EnrollmentWorker>();
-builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
+// builder.Services.AddSingleton<EnrollmentWorker>();
+// builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 
-builder.Host.UseDefaultServiceProvider(options =>
-{
-  options.ValidateScopes = true;
-  options.ValidateOnBuild = true;
-});
+// builder.Host.UseDefaultServiceProvider(options =>
+// {
+//   options.ValidateScopes = true;
+//   options.ValidateOnBuild = true;
+// });
 
 // var app = builder.Build();
-app.MapPost("/api/test/enroll", async (IEnrollmentService svc) =>
+app.MapPost("/api/enrollments/", async (IEnrollmentService svc) =>
 {
   await svc.EnrollAsync("S-001", "CS-101");      // → Information
   await svc.EnrollAsync("S-001", "CS-101");      // → Warning (duplicate)
