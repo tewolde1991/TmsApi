@@ -39,3 +39,30 @@ X-Training-User:
 ### 5. GET deleted (404 )
 GET {{TmsApi_HostAddress}}/api/enrollments/08c774f9
 X-Training-User: 
+
+###
+// student
+### GET all students
+GET {{TmsApi_HostAddress}}/api/students
+
+###
+
+### POST new student
+POST {{TmsApi_HostAddress}}/api/students
+Content-Type: application/json
+
+{
+  "firstName": "Tewolde",
+  "lastName": "Tesfaye",
+  "email": "tolatesfaye30.com"
+}
+
+###
+
+### GET student by id (use id from POST response)
+GET {{TmsApi_HostAddress}}/api/students/{id-here}
+
+###
+
+### DELETE student
+DELETE {{TmsApi_HostAddress}}/api/students/{id-here}

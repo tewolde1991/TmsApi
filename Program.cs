@@ -37,6 +37,7 @@ builder.Host.UseDefaultServiceProvider(options =>
 
 // ========== 6. Add controllers (if you have any) ==========
 builder.Services.AddControllers();
+builder.Services.AddSingleton<IStudentService, StudentService>();
 // builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 var app = builder.Build();
 
