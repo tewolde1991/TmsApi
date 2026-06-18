@@ -28,6 +28,7 @@ builder.Services.AddAuthentication("Training")
     .AddScheme<AuthenticationSchemeOptions, TrainingAuthHandler>("Training", null);
 builder.Services.AddAuthorization();
 
+
 // ========== 5. Enable validation to catch lifetime mistakes ==========
 builder.Host.UseDefaultServiceProvider(options =>
 {
@@ -37,6 +38,7 @@ builder.Host.UseDefaultServiceProvider(options =>
 
 // ========== 6. Add controllers (if you have any) ==========
 builder.Services.AddControllers();
+builder.Services.AddProblemDetails();
 builder.Services.AddSingleton<IStudentService, StudentService>();
 // builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 builder.Services.AddSingleton<ICourseService, CourseService>();
@@ -52,6 +54,8 @@ app.UseExceptionHandler(exceptionHandlerApp =>
     await context.Response.WriteAsync("An error occurred");
   });
 });
+app.UseExceptionHandler();
+app.UseStatusCodePages();
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthentication();
@@ -65,6 +69,10 @@ app.MapGet("/api/assessments/results", () => Results.Ok(new
   letterGrade = "A"
 })).RequireAuthorization();
 
+app.MapGet("/api/error", () =>
+{
+  throw new TmsDatabaseException("Simulated database failure for ProblemDetails testing");
+});
 app.MapControllers();  // if you have any controllers
 
 // app.Run();
@@ -92,3 +100,16 @@ app.MapControllers();  // if you have any controllers
 //   return Results.Ok("done");
 // });
 app.Run();
+
+// // M5-S1
+
+// using Microsoft.AspNetCore.Builder;
+// using Microsoft.EntityFrameworkCore;
+// using TmsApi.Data;
+
+// var builder = WebApplication.CreateBuilder(args);
+// builder.Services.AddDbContext<TmsDbContext>(options =>
+//     options.UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase")));
+
+// var app = builder.Build();
+// app.Run();

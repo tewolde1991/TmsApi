@@ -94,3 +94,13 @@ GET {{TmsApi_HostAddress}}/api/courses/b310f0f9
 
 ### DELETE course
 DELETE {{TmsApi_HostAddress}}/api/courses/b310f0f9
+
+#  exercise 6
+###
+@TmsApi_HostAddress = http://localhost:5043
+
+### Test ProblemDetails error route
+GET {{TmsApi_HostAddress}}/api/error
+
+### Test a 404 to check UseStatusCodePages
+GET {{TmsApi_HostAddress}}/api/this-route-does-not-exist
