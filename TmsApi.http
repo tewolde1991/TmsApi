@@ -104,3 +104,7 @@ GET {{TmsApi_HostAddress}}/api/error
 
 ### Test a 404 to check UseStatusCodePages
 GET {{TmsApi_HostAddress}}/api/this-route-does-not-exist
+####
+
+##
+GET {{TmsApi_HostAddress}}/scalar/v1
