@@ -4,8 +4,8 @@ namespace TmsApi.Entities;
 public class Enrollment
 {
     public int Id {get;set;}
-    public required string StudentId {get; set;}
-    public required string CourseId {get; set;}
+    public required int StudentId {get; set;}
+    public required int CourseId {get; set;}
     public decimal? Grade {get; set;}
 
     public DateTime EnrolledAt {get; set;} = DateTime.UtcNow;
