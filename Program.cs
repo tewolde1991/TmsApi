@@ -36,9 +36,9 @@
 // // });
 
 // exercise 2 module 4 session -2
+using Microsoft.AspNetCore.OpenApi;
 using Scalar.AspNetCore;
 using TmsApi;
-using Microsoft.AspNetCore.OpenApi;
 using TmsApi.Services;
 
 using Microsoft.AspNetCore.Authentication;
@@ -82,11 +82,6 @@ builder.Host.UseDefaultServiceProvider(options =>
 });
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    app.MapScalarApiReference();
-}
 
 // 1. Custom logging middleware FIRST (wraps everything)
 app.UseMiddleware<RequestLoggingMiddleware>();
@@ -111,11 +106,11 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-
-
-
-
-
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+}
 
 
 
