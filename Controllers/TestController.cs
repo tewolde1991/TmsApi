@@ -22,4 +22,28 @@ public class TestController(TmsDbContext context) : ControllerBase
     Console.WriteLine(">>> STEP 4: Materialization finished. List populated.\n");
     return Ok(results);
   }
+  // Non-translatable helper method
+  private static bool IsHonorRoll(decimal gpa)
+  {
+    return gpa >= 3.5m;
+  }
+  [HttpGet("translation-fail")]
+  public IActionResult TestTranslationFail()
+  {
+    Console.WriteLine("\n>>> STEP 1: Running non-translatable query...");
+    try
+    {
+      var students = context.Students
+     .AsEnumerable()
+     .Where(s => s.GPA >= 3.5m)
+     .ToList();
+
+      return Ok(students);
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($">>> EXCEPTION CAUGHT: {ex.Message}\n");
+      return BadRequest(new { Message = ex.Message });
+    }
+  }
 }

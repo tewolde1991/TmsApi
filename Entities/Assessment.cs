@@ -8,5 +8,9 @@ public class Assessment
   public decimal weight { get; set; }
 
   public int CourseId { get; set; }
-  public required Course Course { get; set; }
+  public int StudentId { get; set; }
+  // navigation
+  public required Course Course
+  { get; set; } = null!;
+  public Student Student { get; set; } = null!;
 }

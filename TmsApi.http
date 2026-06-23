@@ -99,7 +99,7 @@ DELETE {{TmsApi_HostAddress}}/api/courses/b310f0f9
 ###
 @TmsApi_HostAddress  = http://localhost:5000
 
-GET {{TmsApi_HostAddress}}/api/test/deferred
+GET {{TmsApi_HostAddress}}/api/test/translation-fail
 
 ### Test ProblemDetails error route
 GET {{TmsApi_HostAddress}}/api/error
