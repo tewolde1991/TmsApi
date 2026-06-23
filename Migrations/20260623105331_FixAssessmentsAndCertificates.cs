@@ -12,6 +12,10 @@ namespace TmsApi.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // Drop existing tables first
+            migrationBuilder.DropTable(name: "Assessments");
+            migrationBuilder.DropTable(name: "Certificates");
+
             migrationBuilder.CreateTable(
                 name: "Assessments",
                 columns: table => new
@@ -89,7 +93,6 @@ namespace TmsApi.Migrations
                 table: "Certificates",
                 column: "StudentId");
         }
-
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
@@ -99,5 +102,6 @@ namespace TmsApi.Migrations
             migrationBuilder.DropTable(
                 name: "Certificates");
         }
+
     }
 }
