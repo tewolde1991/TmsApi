@@ -22,49 +22,6 @@ namespace TmsApi.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Course", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<string>("CourseCode")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("Credits")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Courses");
-                });
-
-            modelBuilder.Entity("Student", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Students");
-                });
-
             modelBuilder.Entity("TmsApi.Entities.Course", b =>
                 {
                     b.Property<int>("Id")
@@ -86,7 +43,7 @@ namespace TmsApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Course");
+                    b.ToTable("Courses");
                 });
 
             modelBuilder.Entity("TmsApi.Entities.Enrollment", b =>
@@ -142,7 +99,7 @@ namespace TmsApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Student");
+                    b.ToTable("Students");
                 });
 
             modelBuilder.Entity("TmsApi.Entities.Enrollment", b =>

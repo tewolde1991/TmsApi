@@ -129,14 +129,69 @@
 
 
 // // M5-S1
-
-using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using TmsApi.Data;
+using TmsApi.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddDbContext<TmsDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase")));
 
+builder.Services.AddControllers();
+
+// ── AddDbContext — builder.Build() በፊት አንድ ጊዜ ብቻ ──
+// LogTo እና EnableSensitiveDataLogging ይህ ቦታ ብቻ ነው የሚጨምሩት
+builder.Services.AddDbContext<TmsDbContext>(options =>
+    options
+        .UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase"))
+        .LogTo(Console.WriteLine, LogLevel.Information)
+        .EnableSensitiveDataLogging());
+
+// ── app ይሰራል — ከዚህ በኋላ builder.Services አይነኩ ──
 var app = builder.Build();
+
+// ── Seeder — app ከተሰራ በኋላ ──
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<TmsDbContext>();
+
+    context.Database.Migrate();
+
+    if (!context.Students.Any())
+    {
+        var students = new List<Student>
+        {
+            new() { RegistrationNumber = "TMS-2026-0001", Name = "Alice Smith",   GPA = 3.8m, IsActive = true  },
+            new() { RegistrationNumber = "TMS-2026-0002", Name = "Bob Jones",     GPA = 2.9m, IsActive = true  },
+            new() { RegistrationNumber = "TMS-2026-0003", Name = "Charlie Brown", GPA = 3.4m, IsActive = false },
+            new() { RegistrationNumber = "TMS-2026-0004", Name = "Diana Prince",  GPA = 3.9m, IsActive = true  },
+            new() { RegistrationNumber = "TMS-2026-0005", Name = "Evan Wright",   GPA = 2.5m, IsActive = true  },
+        };
+        context.Students.AddRange(students);
+
+        var courses = new List<Course>
+        {
+            new() { Code = "CS-101",  Title = "Introduction to Computer Science", Capacity = 30 },
+            new() { Code = "CS-201",  Title = "Data Structures and Algorithms",   Capacity = 25 },
+            new() { Code = "MAT-101", Title = "Calculus I",                       Capacity = 20 },
+        };
+        context.Courses.AddRange(courses);
+
+        context.SaveChanges(); // ← Students + Courses Ids ያስፈልጋሉ ቀድሞ
+
+        var enrollments = new List<Enrollment>
+        {
+            new() { StudentId = students[0].Id, CourseId = courses[0].Id, Grade = 4.0m },
+            new() { StudentId = students[0].Id, CourseId = courses[1].Id, Grade = 3.6m },
+            new() { StudentId = students[1].Id, CourseId = courses[0].Id, Grade = 2.8m },
+            new() { StudentId = students[3].Id, CourseId = courses[1].Id, Grade = 3.9m },
+        };
+        context.Enrollments.AddRange(enrollments);
+
+        context.SaveChanges();
+
+        Console.WriteLine("✅ Database seeded successfully.");
+    }
+}
+
+app.UseHttpsRedirection();
+app.MapControllers();
 app.Run();

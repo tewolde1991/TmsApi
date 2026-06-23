@@ -12,7 +12,7 @@ using TmsApi.Data;
 namespace TmsApi.Migrations
 {
     [DbContext(typeof(TmsDbContext))]
-    [Migration("20260618104721_InitialCreate")]
+    [Migration("20260623071051_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -24,49 +24,6 @@ namespace TmsApi.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("Course", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<string>("CourseCode")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("Credits")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Courses");
-                });
-
-            modelBuilder.Entity("Student", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Students");
-                });
 
             modelBuilder.Entity("TmsApi.Entities.Course", b =>
                 {
@@ -89,7 +46,7 @@ namespace TmsApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Course");
+                    b.ToTable("Courses");
                 });
 
             modelBuilder.Entity("TmsApi.Entities.Enrollment", b =>
@@ -145,7 +102,7 @@ namespace TmsApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Student");
+                    b.ToTable("Students");
                 });
 
             modelBuilder.Entity("TmsApi.Entities.Enrollment", b =>

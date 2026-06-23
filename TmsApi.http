@@ -97,7 +97,9 @@ DELETE {{TmsApi_HostAddress}}/api/courses/b310f0f9
 
 #  exercise 6
 ###
-@TmsApi_HostAddress = http://localhost:5043
+@TmsApi_HostAddress  = http://localhost:5000
+
+GET {{TmsApi_HostAddress}}/api/test/deferred
 
 ### Test ProblemDetails error route
 GET {{TmsApi_HostAddress}}/api/error
@@ -106,5 +108,3 @@ GET {{TmsApi_HostAddress}}/api/error
 GET {{TmsApi_HostAddress}}/api/this-route-does-not-exist
 ####
 
-##
-GET {{TmsApi_HostAddress}}/scalar/v1
