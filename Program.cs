@@ -132,22 +132,25 @@
 using Microsoft.EntityFrameworkCore;
 using TmsApi.Data;
 using TmsApi.Entities;
+using TmsApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
-
+builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<EnrollmentReportService>();
+builder.Services.AddScoped<StudentUpdateService>();
+builder.Services.AddScoped<ArchiveService>();
 builder.Services.AddControllers();
 
-// ── AddDbContext — builder.Build() በፊት አንድ ጊዜ ብቻ ──
-// LogTo እና EnableSensitiveDataLogging ይህ ቦታ ብቻ ነው የሚጨምሩት
+
 builder.Services.AddDbContext<TmsDbContext>(options =>
     options
         .UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase"))
         .LogTo(Console.WriteLine, LogLevel.Information)
         .EnableSensitiveDataLogging());
 
-// ── app ይሰራል — ከዚህ በኋላ builder.Services አይነኩ ──
-var app = builder.Build();
 
+var app = builder.Build();
+app.UseDeveloperExceptionPage();
 // ── Seeder — app ከተሰራ በኋላ ──
 using (var scope = app.Services.CreateScope())
 {
@@ -159,11 +162,11 @@ using (var scope = app.Services.CreateScope())
     {
         var students = new List<Student>
         {
-            new() { RegistrationNumber = "TMS-2026-0001", Name = "Alice Smith",   GPA = 3.8m, IsActive = true  },
-            new() { RegistrationNumber = "TMS-2026-0002", Name = "Bob Jones",     GPA = 2.9m, IsActive = true  },
-            new() { RegistrationNumber = "TMS-2026-0003", Name = "Charlie Brown", GPA = 3.4m, IsActive = false },
-            new() { RegistrationNumber = "TMS-2026-0004", Name = "Diana Prince",  GPA = 3.9m, IsActive = true  },
-            new() { RegistrationNumber = "TMS-2026-0005", Name = "Evan Wright",   GPA = 2.5m, IsActive = true  },
+            new() { RegistrationNumber = "TMS-2026-0001", Name = "Alice Smith",   Email = "alice.smith@example.com",   GPA = 3.8m, IsActive = true  },
+            new() { RegistrationNumber = "TMS-2026-0002", Name = "Bob Jones",     Email = "bob.jones@example.com",     GPA = 2.9m, IsActive = true  },
+            new() { RegistrationNumber = "TMS-2026-0003", Name = "Charlie Brown", Email = "charlie.brown@example.com", GPA = 3.4m, IsActive = false },
+            new() { RegistrationNumber = "TMS-2026-0004", Name = "Diana Prince",  Email = "diana.prince@example.com",  GPA = 3.9m, IsActive = true  },
+            new() { RegistrationNumber = "TMS-2026-0005", Name = "Evan Wright",   Email = "evan.wright@example.com",   GPA = 2.5m, IsActive = true  },
         };
         context.Students.AddRange(students);
 

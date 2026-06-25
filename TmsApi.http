@@ -100,7 +100,16 @@ DELETE {{TmsApi_HostAddress}}/api/courses/b310f0f9
 @TmsApi_HostAddress  = http://localhost:5000
 
 GET {{TmsApi_HostAddress}}/api/test/translation-fail
+###
+@TmsApi_HostAddress  = http://localhost:5000
 
+GET {{TmsApi_HostAddress}}/api/dashboard/students?page=1
+###
+GET {{TmsApi_HostAddress}}api/dashboard/top-courses
+##
+GET {{TmsApi_HostAddress}}
+##
+GET {{TmsApi_HostAddress}}
 ### Test ProblemDetails error route
 GET {{TmsApi_HostAddress}}/api/error
 
@@ -108,3 +117,57 @@ GET {{TmsApi_HostAddress}}/api/error
 GET {{TmsApi_HostAddress}}/api/this-route-does-not-exist
 ####
 
+
+
+//m5 -s2
+
+http://localhost:5000/api/dashboard/students?page=1
+
+###
+http://localhost:5000/api/dashboard/top-courses
+
+###
+http://localhost:5000/api/enrollmentreport/projection
+
+###
+http://localhost:5000/api/enrollmentreport/nplusone
+
+###
+http://localhost:5000/api/enrollmentreport/include
+
+###### Exercise 8 — Update Name (PUT)
+PUT http://localhost:5000/api/studentupdate/1/name?value=Alice%20Updated
+
+###
+
+### Exercise 8 — Update GPA (PUT)
+PUT http://localhost:5000/api/studentupdate/1/gpa?value=3.9
+
+###
+
+### Exercise 8 — Get LastUpdated (GET)
+GET http://localhost:5000/api/studentupdate/1/lastupdated
+
+###
+### Exercise 9 — Bulk Archive Enrollments
+POST http://localhost:5000/api/archive/enrollments?cutoffDays=1
+
+###
+
+### Exercise 9 — Soft Delete Student 1
+DELETE http://localhost:5000/api/archive/students/1
+
+###
+
+### Exercise 9 — Active Students only (filter ሰርቷል)
+GET http://localhost:5000/api/archive/students/active
+
+###
+
+### Exercise 9 — Admin (ሁሉንም ያሳያሉ — deleted ጨምሮ)
+GET http://localhost:5000/api/archive/students/admin
+
+###
+
+### Exercise 9 — Restore Student 1
+POST http://localhost:5000/api/archive/students/1/restore
