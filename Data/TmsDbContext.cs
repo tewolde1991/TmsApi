@@ -15,4 +15,18 @@ public class TmsDbContext : DbContext
     public DbSet<Certificate> Certificate => Set<Certificate>();
 
     // We do not store EnrollmentRecord as DbSet – that's a domain event, not an entity.
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(TmsDbContext).Assembly); 
+// global filter exclude archived enrollment by default
+modelBuilder.Entity<Enrollment>()
+            .HasQueryFilter(e=>!e.IsArchived);
+
+            
+        Console.WriteLine("Configration loaded");
+        foreach(var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            Console.WriteLine($"Entity:{entityType.ClrType.Name}");
+        }
+   }
 }

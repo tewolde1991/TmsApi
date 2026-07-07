@@ -1,53 +1,113 @@
-// using TmsApi.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using TmsApi.Data;
+using TmsApi.Entities;
 
-namespace  TmsApi;
+namespace TmsApi;
 
-
+// 1. Interface: signatures only
 public interface IEnrollmentService
 {
-Task<EnrollmentRecord> EnrollAsync(string studentId, string courseCode);
-Task<EnrollmentRecord?> GetByIdAsync(string id);
-Task<IReadOnlyList<EnrollmentRecord>> GetAllAsync();
-Task<bool> DeleteAsync(string id);
+    Task<Enrollment> EnrollAsync(int studentId, string courseCode, CancellationToken ct = default);
+    Task<Enrollment?> GetByIdAsync(int id, CancellationToken ct = default);
+    Task<IReadOnlyList<Enrollment>> GetAllAsync(CancellationToken ct = default);
+    Task<bool> DeleteAsync(int id, CancellationToken ct = default);
+     Task<int> ArchiveByYearAsync(int year, CancellationToken ct = default);
 }
-//--- The in-memory implementation--
+
+// 2. Implementation: actual logic
 public class EnrollmentService : IEnrollmentService
 {
-private readonly Dictionary<string, EnrollmentRecord> _store = new();
-// private readonly TMSDbContext _db;
-private readonly ILogger<EnrollmentService> _logger;
-public EnrollmentService(ILogger<EnrollmentService> logger)
-{
-   
-_logger = logger;
-}
-public async Task<EnrollmentRecord> EnrollAsync(string studentId, string courseCode)
-{
-var id = Guid.NewGuid().ToString("N")[..8];
-var record = new EnrollmentRecord(id, studentId, courseCode, DateTime.UtcNow);
+    private readonly TmsDbContext _db;
+    private readonly ILogger<EnrollmentService> _logger;
 
-// _store[id] = record;
-_logger.LogInformation(
-"Enrolled {StudentId} in {CourseCode} record {EnrollmentId}",
-studentId, courseCode, id);
-return await Task.FromResult(record);
-}
-public async Task<EnrollmentRecord?> GetByIdAsync(string id)
-{
-    // _store.TryGetValue(id, out var record);
-    await Task.Delay(1);
-    return null;
-}
-public async Task<IReadOnlyList<EnrollmentRecord>> GetAllAsync()
-{
-IReadOnlyList<EnrollmentRecord> all = _store.Values.ToList();
-    await Task.Delay(1);
-    return new List<EnrollmentRecord>();
-}
-public async Task<bool> DeleteAsync(string id)
-{
-// var removed = _store.Remove(id);
-    await Task.Delay(1);
-    return true;
-}
+    public EnrollmentService(TmsDbContext db, ILogger<EnrollmentService> logger)
+    {
+        _db = db;
+        _logger = logger;
+    }
+
+    public async Task<Enrollment> EnrollAsync(int studentId, string courseCode, CancellationToken ct = default)
+    {
+        // Find course by code
+        var course = await _db.Courses
+            .FirstOrDefaultAsync(c => c.Code == courseCode, ct);
+
+        if (course is null)
+        {
+            throw new InvalidOperationException($"Course with code '{courseCode}' not found.");
+        }
+
+        // Check student exists
+        var studentExists = await _db.Students
+            .AnyAsync(s => s.Id == studentId, ct);
+
+        if (!studentExists)
+        {
+            throw new InvalidOperationException($"Student with id '{studentId}' not found.");
+        }
+
+        var enrollment = new Enrollment
+        {
+            StudentId = studentId,
+            CourseId = course.Id,
+            EnrolledAt = DateTime.UtcNow,
+            Year = DateTime.UtcNow.Year,
+            IsArchived = false
+        };
+
+        _db.Enrollments.Add(enrollment);
+        await _db.SaveChangesAsync(ct);
+
+        _logger.LogInformation(
+            "Enrolled student {StudentId} in course {CourseCode} with enrollment {EnrollmentId}",
+            studentId, courseCode, enrollment.Id);
+
+        return enrollment;
+    }
+
+    public async Task<Enrollment?> GetByIdAsync(int id, CancellationToken ct = default)
+    {
+        return await _db.Enrollments
+            .Include(e => e.Student)
+            .Include(e => e.Course)
+            .FirstOrDefaultAsync(e => e.Id == id, ct);
+    }
+
+    public async Task<IReadOnlyList<Enrollment>> GetAllAsync(CancellationToken ct = default)
+    {
+        var list = await _db.Enrollments
+            .Include(e => e.Student)
+            .Include(e => e.Course)
+            .ToListAsync(ct);
+
+        return list;
+    }
+
+    public async Task<bool> DeleteAsync(int id, CancellationToken ct = default)
+    {
+        var enrollment = await _db.Enrollments.FindAsync(new object[] { id }, ct);
+        if (enrollment is null)
+        {
+            return false;
+        }
+// hard delete
+        _db.Enrollments.Remove(enrollment);
+
+        // soft delete
+        enrollment.IsArchived = true;  
+        await _db.SaveChangesAsync(ct);
+
+        return true;
+    }
+public async Task<int> ArchiveByYearAsync(int year, CancellationToken ct = default)
+    {
+var affected = await _db.Enrollments
+            .Where(e => e.Year == year && !e.IsArchived)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(e => e.IsArchived, true),
+                ct);
+
+        return affected;    }
+
 }

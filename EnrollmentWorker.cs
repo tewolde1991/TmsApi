@@ -16,6 +16,9 @@
 // Change it to use IServiceScopeFactory
 
 
+using Microsoft.EntityFrameworkCore;
+using TmsApi.Data;
+
 namespace TmsApi;
 
 public class EnrollmentWorker : BackgroundService
@@ -35,12 +38,18 @@ public class EnrollmentWorker : BackgroundService
         {
             await Task.Delay(30_000, stoppingToken); // run every 30 seconds
 
-            using (var scope = _scopeFactory.CreateScope())
-            {
-                var enrollmentService = scope.ServiceProvider.GetRequiredService<IEnrollmentService>();
-                var record = await enrollmentService.EnrollAsync("BG-User", "BG-Course");
-                _logger.LogInformation("Background enrollment created: {Id}", record.Id);
-            }
+            using var scope = _scopeFactory.CreateScope();
+var db = scope.ServiceProvider.GetRequiredService<TmsDbContext>();
+
+var student = await db.Students.FirstOrDefaultAsync(stoppingToken);
+if (student is null)
+{
+    _logger.LogWarning("No students found; skipping background enrollment.");
+    continue;
+}
+
+var enrollmentService = scope.ServiceProvider.GetRequiredService<IEnrollmentService>();
+var record = await enrollmentService.EnrollAsync(student.Id, "BG-Course", stoppingToken);
         }
     }
 }

@@ -10,3 +10,19 @@ Accept: application/json
 ###
 GET {{TmsApi_HostAddress}}/api/test/translation-fail
 Accept: application/json
+###
+GET {{TmsApi_HostAddress}}/api/test/translation-fail
+Accept: application/json
+###
+GET {{TmsApi_HostAddress}}/api/students?page=1
+Accept: application/json
+###
+GET {{TmsApi_HostAddress}}/api/test/top-courses
+Accept: application/json
+
+### 
+PATCH http://localhost:5298/api/students/1?name=Alice+Updated&gpa=3.9&isActive=true
+Accept: application/json
+###
+PATCH http://localhost:5298/api/students/1?name=Alice+FromB
+Accept: application/json

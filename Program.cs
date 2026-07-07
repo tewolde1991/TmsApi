@@ -1,42 +1,40 @@
-// exercise 1
-// IServiceCollection services = new ServiceCollection();
-// var builder = WebApplication.CreateBuilder(args);
-// // builder.Services.AddControllers();
-// var app = builder.Build();
+//  exercise 1
+/*var builder = WebApplication.CreateBuilder(args);
+// registering sevices
+builder.Services.AddAuthorization();
+builder.Services.AddAuthentication()
+            .AddBearerToken();
+var app = builder.Build();
+//TODO1:Register routing in the pipeline where it belongs for your app.
+app.UseRouting();
 
-// //TODO1:Register routing in the pipeline where it belongs for your app.
-// app.UseRouting();
-// services.AddAuthentication();
-// services.AddAuthorization();
-// app.MapGet("/api/assesments/results", () => Results.Ok(new
-// {
-//     courseCode = "TMS101",
-//     studentId = "S-001",
-//     letterGrade = "A",
-// })
-// );
-// app.Run();
-// // app.Use(async (context, next) =>
-// // {
-// //     // Code BEFORE next middleware
-// //     Console.WriteLine("Before next middleware");
-// //     await next.Invoke(context);  // ← KEY LINE
-// //                                  // Code AFTER next middleware
-// //     Console.WriteLine("After next middleware");
-// // });
-// // app.Run();
 
-// // app.Run(async (context) =>
-// // {
-// //     // Code BEFORE next middleware
-// //     Console.WriteLine("Before next middleware");
-// //     await context.Response.WriteAsync("Hello, World!");  // ← KEY LINE
-// //                                  // Code AFTER next middleware
-// //     Console.WriteLine("After next middleware");
-// // });
+app.UseAuthentication();
+app.UseAuthorization();
+// 3. Your custom middleware example
+app.Use(async (context, next) =>
+{
+    Console.WriteLine("Before next middleware");
+    await next.Invoke(context);        // ← This calls the next middleware
+    Console.WriteLine("After next middleware");
+});
+app.MapGet("/api/assesments/results", () => Results.Ok(new
+{
+    courseCode = "TMS101",
+    studentId = "S-001",
+    letterGrade = "A",
+})
+).RequireAuthorization();
 
+
+// 5. Terminal middleware - should be at the very end
+app.Run(async (context) =>
+{
+    await context.Response.WriteAsync("Hello, World! - Fallback");
+});
+app.Run();
+*/
 // exercise 2 module 4 session -2
-using Microsoft.AspNetCore.OpenApi;
 using Scalar.AspNetCore;
 using TmsApi;
 using TmsApi.Services;
@@ -45,7 +43,6 @@ using Microsoft.AspNetCore.Authentication;
 using TmsApi.Data;
 using Microsoft.EntityFrameworkCore;
 using TmsApi.Entities;
-using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
@@ -55,9 +52,9 @@ builder.Services.AddOpenApi(); // Required before MapOpenApi() will work
 
 // Transient: new instance every time
 // builder.Services.AddTransient<IGradeCalculator, GradeCalculator>();
-
+ builder.Services.AddScoped<StudentService>();
 // Scoped: one instance per HTTP request
-builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
+builder.Services.AddScoped<EnrollmentService, EnrollmentService>();
 
 // Singleton: one instance for the whole application
 builder.Services.AddSingleton<IConfigReader, ConfigReader>();
@@ -131,7 +128,7 @@ using (var scope = app.Services.CreateScope())
         new() { RegistrationNumber = "TMS-2026-0005", Name = "EvanWright", GPA = 2.5m, IsActive = true }
         };
         context.Students.AddRange(students);
-
+        context.SaveChanges();
         var courses = new List<Course>
         {
             new() { Code = "CS-101", Title = "Introduction to ComputerScience", Capacity = 30 },
@@ -162,5 +159,6 @@ app.MapGet("/api/assesments/results/", () => Results.Ok(new
     studentId = "S-001",
     letterGrade = "A"
 })).RequireAuthorization();
+
 
 app.Run();

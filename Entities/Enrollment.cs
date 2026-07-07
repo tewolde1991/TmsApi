@@ -9,6 +9,8 @@ public class Enrollment
     public decimal? Grade {get; set;}
 
     public DateTime EnrolledAt {get; set;} = DateTime.UtcNow;
+    public int Year { get; set; } = DateTime.UtcNow.Year;
+    public bool IsArchived {get; set;} = false;
 
     public Student Student {get; set;} = null!;
     public Course Course {get; set;} = null!;
