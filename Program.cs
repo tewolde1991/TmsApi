@@ -128,11 +128,84 @@
 
 
 
-// // M5-S1
+// // // M5-S1
+// using Microsoft.EntityFrameworkCore;
+// using TmsApi.Data;
+// using TmsApi.Entities;
+// using TmsApi.Services;
+
+// var builder = WebApplication.CreateBuilder(args);
+// builder.Services.AddScoped<DashboardService>();
+// builder.Services.AddScoped<EnrollmentReportService>();
+// builder.Services.AddScoped<StudentUpdateService>();
+// builder.Services.AddScoped<ArchiveService>();
+// builder.Services.AddControllers();
+
+
+// builder.Services.AddDbContext<TmsDbContext>(options =>
+//     options
+//         .UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase"))
+//         .LogTo(Console.WriteLine, LogLevel.Information)
+//         .EnableSensitiveDataLogging());
+
+
+// var app = builder.Build();
+// app.UseDeveloperExceptionPage();
+// // ── Seeder — app ከተሰራ በኋላ ──
+// using (var scope = app.Services.CreateScope())
+// {
+//     var context = scope.ServiceProvider.GetRequiredService<TmsDbContext>();
+
+//     context.Database.Migrate();
+
+//     if (!context.Students.Any())
+//     {
+//         var students = new List<Student>
+//         {
+//             new() { RegistrationNumber = "TMS-2026-0001", Name = "Alice Smith",   Email = "alice.smith@example.com",   GPA = 3.8m, IsActive = true  },
+//             new() { RegistrationNumber = "TMS-2026-0002", Name = "Bob Jones",     Email = "bob.jones@example.com",     GPA = 2.9m, IsActive = true  },
+//             new() { RegistrationNumber = "TMS-2026-0003", Name = "Charlie Brown", Email = "charlie.brown@example.com", GPA = 3.4m, IsActive = false },
+//             new() { RegistrationNumber = "TMS-2026-0004", Name = "Diana Prince",  Email = "diana.prince@example.com",  GPA = 3.9m, IsActive = true  },
+//             new() { RegistrationNumber = "TMS-2026-0005", Name = "Evan Wright",   Email = "evan.wright@example.com",   GPA = 2.5m, IsActive = true  },
+//         };
+//         context.Students.AddRange(students);
+
+//         var courses = new List<Course>
+//         {
+//             new() { Code = "CS-101",  Title = "Introduction to Computer Science", MaxCapacity = 30 },
+//             new() { Code = "CS-201",  Title = "Data Structures and Algorithms",  MaxCapacity = 25 },
+//             new() { Code = "MAT-101", Title = "Calculus I",                       MaxCapacity = 20 },
+//         };
+//         context.Courses.AddRange(courses);
+
+//         context.SaveChanges(); // ← Students + Courses Ids ያስፈልጋሉ ቀድሞ
+
+//         var enrollments = new List<Enrollment>
+//         {
+//             new() { StudentId = students[0].Id, CourseId = courses[0].Id, Grade = 4.0m },
+//             new() { StudentId = students[0].Id, CourseId = courses[1].Id, Grade = 3.6m },
+//             new() { StudentId = students[1].Id, CourseId = courses[0].Id, Grade = 2.8m },
+//             new() { StudentId = students[3].Id, CourseId = courses[1].Id, Grade = 3.9m },
+//         };
+//         context.Enrollments.AddRange(enrollments);
+
+//         context.SaveChanges();
+
+//         Console.WriteLine("✅ Database seeded successfully.");
+//     }
+// }
+
+// app.UseHttpsRedirection();
+// app.MapControllers();
+// app.Run();
+
+// Module 6
+
 using Microsoft.EntityFrameworkCore;
 using TmsApi.Data;
 using TmsApi.Entities;
 using TmsApi.Services;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<DashboardService>();
@@ -142,59 +215,20 @@ builder.Services.AddScoped<ArchiveService>();
 builder.Services.AddControllers();
 
 
+builder.Services.AddProblemDetails();
+builder.Services.AddOpenApi();
 builder.Services.AddDbContext<TmsDbContext>(options =>
-    options
-        .UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase"))
-        .LogTo(Console.WriteLine, LogLevel.Information)
-        .EnableSensitiveDataLogging());
-
-
+options.UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase")));
+builder.Services.AddControllers();
+builder.Services.AddScoped<ICourseService, CourseService>();
+builder.Services.AddScoped<IStudentService, StudentService>();
 var app = builder.Build();
-app.UseDeveloperExceptionPage();
-// ── Seeder — app ከተሰራ በኋላ ──
-using (var scope = app.Services.CreateScope())
+app.UseExceptionHandler();
+app.UseStatusCodePages();
+if (app.Environment.IsDevelopment())
 {
-    var context = scope.ServiceProvider.GetRequiredService<TmsDbContext>();
-
-    context.Database.Migrate();
-
-    if (!context.Students.Any())
-    {
-        var students = new List<Student>
-        {
-            new() { RegistrationNumber = "TMS-2026-0001", Name = "Alice Smith",   Email = "alice.smith@example.com",   GPA = 3.8m, IsActive = true  },
-            new() { RegistrationNumber = "TMS-2026-0002", Name = "Bob Jones",     Email = "bob.jones@example.com",     GPA = 2.9m, IsActive = true  },
-            new() { RegistrationNumber = "TMS-2026-0003", Name = "Charlie Brown", Email = "charlie.brown@example.com", GPA = 3.4m, IsActive = false },
-            new() { RegistrationNumber = "TMS-2026-0004", Name = "Diana Prince",  Email = "diana.prince@example.com",  GPA = 3.9m, IsActive = true  },
-            new() { RegistrationNumber = "TMS-2026-0005", Name = "Evan Wright",   Email = "evan.wright@example.com",   GPA = 2.5m, IsActive = true  },
-        };
-        context.Students.AddRange(students);
-
-        var courses = new List<Course>
-        {
-            new() { Code = "CS-101",  Title = "Introduction to Computer Science", Capacity = 30 },
-            new() { Code = "CS-201",  Title = "Data Structures and Algorithms",   Capacity = 25 },
-            new() { Code = "MAT-101", Title = "Calculus I",                       Capacity = 20 },
-        };
-        context.Courses.AddRange(courses);
-
-        context.SaveChanges(); // ← Students + Courses Ids ያስፈልጋሉ ቀድሞ
-
-        var enrollments = new List<Enrollment>
-        {
-            new() { StudentId = students[0].Id, CourseId = courses[0].Id, Grade = 4.0m },
-            new() { StudentId = students[0].Id, CourseId = courses[1].Id, Grade = 3.6m },
-            new() { StudentId = students[1].Id, CourseId = courses[0].Id, Grade = 2.8m },
-            new() { StudentId = students[3].Id, CourseId = courses[1].Id, Grade = 3.9m },
-        };
-        context.Enrollments.AddRange(enrollments);
-
-        context.SaveChanges();
-
-        Console.WriteLine("✅ Database seeded successfully.");
-    }
+    app.MapOpenApi();
+    app.MapScalarApiReference(); // removed: extension not found. Install/configure the package that provides this extension if needed.
 }
-
-app.UseHttpsRedirection();
 app.MapControllers();
 app.Run();

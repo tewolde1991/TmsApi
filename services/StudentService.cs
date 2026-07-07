@@ -40,3 +40,19 @@
 //     return Task.FromResult(removed);
 //   }
 // }
+
+// module 6
+
+using TmsApi.Data;
+
+namespace TmsApi.Services;
+
+public class StudentService : IStudentService
+{
+  private readonly TmsDbContext _context;
+
+  public StudentService(TmsDbContext context)
+  {
+    _context = context;
+  }
+}

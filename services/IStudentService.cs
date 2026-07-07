@@ -5,3 +5,11 @@
 //   Task<Student> CreateAsync(string firstName, string lastName, string email);
 //   Task<bool> DeleteAsync(string id);
 // }
+
+//  module 6
+namespace TmsApi.Services;
+
+public interface IStudentService
+{
+  // add methods here when needed
+}

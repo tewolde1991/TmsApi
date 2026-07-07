@@ -11,7 +11,7 @@ public class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollment>
         builder.HasKey(e => e.Id);
 
         // Student → Enrollment: Restrict
-        // ምክንያት: Student ሲሰረዝ enrollment records ትርጉም የላቸውም — ጥፋቱ ትክክል ነው
+
         builder
             .HasOne(e => e.Student)
             .WithMany(s => s.Enrollments)
@@ -19,8 +19,8 @@ public class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollment>
             .OnDelete(DeleteBehavior.Restrict);
 
         // Course → Enrollment: Restrict
-        // ምክንያት: Course ሲሰረዝ students' grade records መጥፋት የለባቸውም —
-        //          application code ቀድሞ enrollments ማስወገድ አለበት
+        // because: Course deletes students' grade records not deleted—
+        //          application code before enrollments deleted
         builder
             .HasOne(e => e.Course)
             .WithMany(c => c.Enrollments)
