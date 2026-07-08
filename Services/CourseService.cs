@@ -14,7 +14,12 @@ public class CourseService(TmsDbContext context, ILogger<CourseService> logger)
                 .Select(c => new CourseResponseDto(c.Id, c.Code,c.Title,c.MaxCapacity,c.Enrollments.Count))
                 .FirstOrDefaultAsync();
      
-
+  public async Task<bool> CodeExistAsync(string code, CancellationToken ct)
+    {
+        return await context.Courses
+                            .AsNoTracking()
+                            .AnyAsync(c=>c.Code ==code, ct);
+    }
     public async Task<CourseResponseDto> CreateAsync(CreateCourseRequest request , CancellationToken ct)
     {
        var course = new Course
@@ -28,4 +33,5 @@ public class CourseService(TmsDbContext context, ILogger<CourseService> logger)
        logger.LogInformation("Created course {CourseId} ({Code})",course.Id, course.Code);
        return (await GetByIdAsync(course.Id, ct))!;
     }
+  
 }

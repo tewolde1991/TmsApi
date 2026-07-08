@@ -19,10 +19,21 @@ public class CourseController(ICourseService courseService): ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateCourse(CreateCourseRequest request, CancellationToken ct)
     {
-
-        var result = await courseService.CreateAsync(request,ct);
-        return CreatedAtAction(nameof(GetCourseById),
-        new{id=result.Id},
-        result);
+        try
+        {
+           var result = await courseService.CreateAsync(request,ct);
+           return CreatedAtAction(nameof(GetCourseById), new{id=result.Id},result);
+        }
+        catch (InvalidOperationException ex) when(ex.Message.Contains("already exist"))
+        {
+            return Conflict(new ProblemDetails
+            {
+                Title="Course code already exista",
+                Status=StatusCodes.Status409Conflict,
+                Detail=ex.Message
+            });
+            
+        }
+       
     }
 }
