@@ -1,0 +1,28 @@
+
+
+using Microsoft.AspNetCore.Mvc;
+using TmsApi.Entities;
+using TmsApi.Services;
+
+[ApiController]
+[Route("api/courses")]
+public class CourseController(ICourseService courseService): ControllerBase
+{
+    [HttpGet("{id:int}", Name = nameof(GetCourseById))]
+    public async Task<IActionResult> GetCourseById(int id, CancellationToken ct)
+    {
+      var course = await courseService.GetByIdAsync(id, ct);
+      return course is not null ? Ok(course) : NotFound();
+      throw new NotImplementedException();  
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateCourse(Course course, CancellationToken ct)
+    {
+
+        var createdCourse = await courseService.CreateAsync(course,ct);
+        return CreatedAtAction(nameof(GetCourseById),
+        new{id=createdCourse.Id},
+        createdCourse);
+    }
+}

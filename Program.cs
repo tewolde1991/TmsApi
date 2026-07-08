@@ -45,8 +45,12 @@ using Microsoft.EntityFrameworkCore;
 using TmsApi.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
+// register TmsDbContext scoped for incomming http requests
+builder.Services.AddDbContext<TmsDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase"))
+.LogTo(Console.WriteLine, LogLevel.Information) // log sql to output window
+.EnableSensitiveDataLogging());   // show parametrs in query log 
 builder.Services.AddControllers();
-
+builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi(); // Required before MapOpenApi() will work
 
 
@@ -59,6 +63,8 @@ builder.Services.AddScoped<EnrollmentService, EnrollmentService>();
 // Singleton: one instance for the whole application
 builder.Services.AddSingleton<IConfigReader, ConfigReader>();
 
+// register course service here
+builder.Services.AddScoped<ICourseService, CourseService>();
 // Add services for authentication (training handler)
 builder.Services.AddAuthentication("Training")
     .AddScheme<AuthenticationSchemeOptions, TrainingAuthHandler>("Training", null);
@@ -66,10 +72,7 @@ builder.Services.AddAuthorization();
 // add buggy registrations
 builder.Services.AddSingleton<EnrollmentWorker>();
 
-// register TmsDbContext scoped for incomming http requests
-builder.Services.AddDbContext<TmsDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase"))
-.LogTo(Console.WriteLine, LogLevel.Information) // log sql to output window
-.EnableSensitiveDataLogging());   // show parametrs in query log 
+
 
 // add host validation
 builder.Host.UseDefaultServiceProvider(options =>
@@ -131,9 +134,9 @@ using (var scope = app.Services.CreateScope())
         context.SaveChanges();
         var courses = new List<Course>
         {
-            new() { Code = "CS-101", Title = "Introduction to ComputerScience", Capacity = 30 },
-            new() { Code = "CS-201", Title = "Data Structures and Algorithms", Capacity = 25 },
-            new() { Code = "MAT-101", Title = "Calculus I", Capacity =40 }
+            new() { Code = "CS-101", Title = "Introduction to ComputerScience", MaxCapacity = 30 },
+            new() { Code = "CS-201", Title = "Data Structures and Algorithms", MaxCapacity = 25 },
+            new() { Code = "MAT-101", Title = "Calculus I", MaxCapacity =40 }
         };
         context.Courses.AddRange(courses);
         context.SaveChanges();
