@@ -17,12 +17,12 @@ public class CourseController(ICourseService courseService): ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateCourse(Course course, CancellationToken ct)
+    public async Task<IActionResult> CreateCourse(CreateCourseRequest request, CancellationToken ct)
     {
 
-        var createdCourse = await courseService.CreateAsync(course,ct);
+        var result = await courseService.CreateAsync(request,ct);
         return CreatedAtAction(nameof(GetCourseById),
-        new{id=createdCourse.Id},
-        createdCourse);
+        new{id=result.Id},
+        result);
     }
 }
