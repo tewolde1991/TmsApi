@@ -181,3 +181,58 @@ http://localhost:5000/scalar/v1
 
 ###
 http://localhost:5000
+
+
+
+
+### Test 1: Valid course → 201
+POST http://localhost:5000/api/courses
+Content-Type: application/json
+
+{
+  "code": "CSE-101",
+  "title": "Web Development",
+  "maxCapacity": 30
+}
+
+###
+
+### Test 2: Get course → 200
+GET http://localhost:5000/api/courses/1
+
+###
+
+### Test 3: Empty body → 400
+POST http://localhost:5000/api/courses
+Content-Type: application/json
+
+{}
+
+###
+
+### Test 4: Wrong code format → 400
+POST http://localhost:5000/api/courses
+Content-Type: application/json
+
+{
+  "code": "abc",
+  "title": "Test",
+  "maxCapacity": 9999
+}
+
+###
+
+### Test 5: Duplicate code → 409
+POST http://localhost:5000/api/courses
+Content-Type: application/json
+
+{
+  "code": "CSE-101",
+  "title": "Another Course",
+  "maxCapacity": 10
+}
+
+###
+
+### Test 6: Not found → 404
+GET http://localhost:5000/api/courses/9999
