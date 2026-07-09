@@ -1,39 +1,71 @@
 using Microsoft.AspNetCore.Mvc;
+using TmsApi.Dtos;
+using TmsApi.DTOs;
+using TmsApi.Services;
+
+namespace TmsApi.Controllers;
+
 [ApiController]
-[Route("/api/enrollments")]
-public class EnrollmentsController(IEnrollmentService enrollmentService) : ControllerBase
+[Route("api/courses/{courseId:int}/enrollments")]
+[Tags("Enrollments")]
+public class EnrollmentsController(
+    ICourseService courseService,
+    IEnrollmentService enrollmentService) : ControllerBase
 {
-  // GET /api/enrollments
-  [HttpGet]
-  public async Task<IActionResult> GetAll()
+  [HttpGet("{id:int}", Name = nameof(GetEnrollment))]
+  public async Task<IActionResult> GetEnrollment(int courseId, int id, CancellationToken ct)
   {
-    var enrollments = await enrollmentService.GetAllAsync();
-    return Ok(enrollments);
+    var enrollment = await enrollmentService.GetByIdAsync(courseId, id, ct);
+    return enrollment is not null ? Ok(enrollment) : NotFound();
   }
 
-  // GET /api/enrollments/{id}
-  [HttpGet("{id}")]
-  public async Task<IActionResult> GetById(string id)
-  {
-    var record = await enrollmentService.GetByIdAsync(id);
-    return record is not null ? Ok(record) : NotFound();
-  }
-
-  // POST /api/enrollments
   [HttpPost]
-  public async Task<IActionResult> Create([FromBody] CreateEnrollmentRequest request)
+  public async Task<IActionResult> EnrollStudent(
+      int courseId,
+      EnrollStudentRequest request,
+      CancellationToken ct)
   {
-    var record = await enrollmentService.EnrollAsync(request.StudentId, request.CourseCode);
-    return CreatedAtAction(nameof(GetById), new { id = record.Id }, record);
-  }
+    // Example: use courseService to validate the course exists before delegating
+    var course = await courseService.GetByIdAsync(courseId, ct);
+    if (course is null)
+    {
+      return NotFound(new ProblemDetails
+      {
+        Title = "Course not found",
+        Detail = $"Course with ID {courseId} not found.",
+        Status = StatusCodes.Status404NotFound
+      });
+    }
 
-  // DELETE /api/enrollments/{id}
-  [HttpDelete("{id}")]
-  public async Task<IActionResult> Delete(string id)
-  {
-    var deleted = await enrollmentService.DeleteAsync(id);
-    return deleted ? NoContent() : NotFound();
+    try
+    {
+      var result = await enrollmentService.CreateAsync(courseId, request, ct);
+      return CreatedAtAction(
+          nameof(GetEnrollment),
+          new { courseId, id = result.Id },
+          result);
+    }
+    catch (InvalidOperationException ex)
+    {
+      return Conflict(new ProblemDetails
+      {
+        Title = "Business Rule Violation",
+        Detail = ex.Message,
+        Status = StatusCodes.Status409Conflict
+      });
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Enrollment error:{ex.Message}");
+      Console.WriteLine($"Inner: {ex.InnerException?.Message}");
+      Console.WriteLine(ex.StackTrace);
+
+      return StatusCode(500, new ProblemDetails
+      {
+        Title = "Internal server error",
+        Detail = ex.InnerException?.Message ??
+          ex.Message
+      });
+    }
   }
 }
-
-public record CreateEnrollmentRequest(string StudentId, string CourseCode);

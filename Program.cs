@@ -222,6 +222,7 @@ options.UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase")));
 builder.Services.AddControllers();
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
+builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 var app = builder.Build();
 app.UseExceptionHandler();
 app.UseStatusCodePages();

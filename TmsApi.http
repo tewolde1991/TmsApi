@@ -175,7 +175,7 @@ POST http://localhost:5000/api/archive/students/1/restore
 
 
 # Module 6
-
+# Exercise 1
 ###
 http://localhost:5000/scalar/v1
 
@@ -184,7 +184,7 @@ http://localhost:5000
 
 
 
-
+# Exercise 2
 ### Test 1: Valid course → 201
 POST http://localhost:5000/api/courses
 Content-Type: application/json
@@ -236,3 +236,44 @@ Content-Type: application/json
 
 ### Test 6: Not found → 404
 GET http://localhost:5000/api/courses/9999
+
+
+
+# Exercise 3
+### Test 1: Duplicate code → 409
+POST http://localhost:5000/api/courses
+Content-Type: application/json
+
+{ "code": "CSE-104", "title": "Another", "maxCapacity": 10 }
+
+###
+
+### Test 2: Create course maxCapacity=1
+POST http://localhost:5000/api/courses
+Content-Type: application/json
+
+{ "code": "CSE-103", "title": "Test Course", "maxCapacity": 1 }
+
+###
+
+### Test 3: Enroll student → 201 (use id from test 2)
+POST http://localhost:5000/api/courses/5/enrollments
+Content-Type: application/json
+
+{ "studentId": 1 }
+
+###
+
+### Test 4: Enroll again → 409 Course is full
+POST http://localhost:5000/api/courses/5/enrollments
+Content-Type: application/json
+
+{ "studentId": 2 }
+
+###
+
+### Test 5: Missing course → 404
+POST http://localhost:5000/api/courses/9999/enrollments
+Content-Type: application/json
+
+{ "studentId": 1 }

@@ -1,6 +1,4 @@
 namespace TmsApi.Dtos;
-
-using TmsApi.Dtos;
 public record CourseResponseDto(
     int Id,
     string Code,
