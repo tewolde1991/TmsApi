@@ -18,6 +18,7 @@
 
 using Microsoft.EntityFrameworkCore;
 using TmsApi.Data;
+using TmsApi.Services;
 
 namespace TmsApi;
 
@@ -49,7 +50,7 @@ if (student is null)
 }
 
 var enrollmentService = scope.ServiceProvider.GetRequiredService<IEnrollmentService>();
-var record = await enrollmentService.EnrollAsync(student.Id, "BG-Course", stoppingToken);
+// var record = await enrollmentService.EnrollAsync(student.Id, "BG-Course", stoppingToken);
         }
     }
 }

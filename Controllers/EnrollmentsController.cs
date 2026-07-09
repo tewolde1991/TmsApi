@@ -1,54 +1,69 @@
 using Microsoft.AspNetCore.Mvc;
-using TmsApi;
+using TmsApi.Services;
+
+namespace TmsApi.Controllers;
 
 [ApiController]
-[Route("api/enrollments")]
-public class EnrollmentsController(IEnrollmentService enrollmentService) : ControllerBase
+[Route("api/courses/{courseId:int}/enrollments")]
+[Tags("Enrollments")]
+public class EnrollmentsController(
+    ICourseService courseService,
+    IEnrollmentService enrollmentService) : ControllerBase
 {
-    // private readonly IEnrollmentService _enrollmentService;
-    // public EnrollmentsController(IEnrollmentService enrollmentService)
-    // {
-    //     _enrollmentService  =enrollmentService;
-    // }
-    // GET/api/enrollments returns all enrollment records
-
-    
-   
-    [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken ct)
+    [HttpGet("{id:int}", Name = nameof(GetEnrollment))]
+    public async Task<IActionResult> GetEnrollment(int courseId, int id, CancellationToken ct)
     {
-        var enrollments = await enrollmentService.GetAllAsync(ct);
-        return Ok(enrollments);
-    }
-    // GET/api/enrollments/{id} returns one or 404
-    [HttpGet("{id:int}")]
-    public async Task<IActionResult> GetById(int id, CancellationToken ct)
-    {
-        var record = await enrollmentService.GetByIdAsync(id, ct);
-        return record is not null ? Ok(record) : NotFound();
+        var enrollment = await enrollmentService.GetByIdAsync(courseId, id, ct);
+        return enrollment is not null ? Ok(enrollment) : NotFound();
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateEnrollmentRequest request, CancellationToken ct)
+     public async Task<IActionResult> EnrollStudent(
+        int courseId,
+        EnrollStudentRequest request,
+        CancellationToken ct)
     {
-        var record = await enrollmentService.EnrollAsync(request.StudentId, request.CourseCode, ct);
-        return CreatedAtAction(nameof(GetById), new { id = record.Id }, record);
+        // Example: use courseService to validate the course exists before delegating
+        var course = await courseService.GetByIdAsync(courseId, ct);
+        if (course is null)
+        {
+            return NotFound(new ProblemDetails
+            {
+                Title = "Course not found",
+                Detail = $"Course with ID {courseId} not found.",
+                Status = StatusCodes.Status404NotFound
+            });
+        }
+
+        try
+        {
+            var result = await enrollmentService.CreateAsync(courseId, request, ct);
+            return CreatedAtAction(
+                nameof(GetEnrollment),
+                new { courseId, id = result.Id },
+                result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new ProblemDetails
+            {
+                Title = "Business Rule Violation",
+                Detail = ex.Message,
+                Status = StatusCodes.Status409Conflict
+            });
+        }
+        catch( Exception ex)
+        {
+            Console.WriteLine($"Enrollment error:{ex.Message}");
+            Console.WriteLine($"Inner: {ex.InnerException?.Message}");
+            Console.WriteLine(ex.StackTrace);
+
+            return StatusCode(500, new ProblemDetails
+            {
+                Title="Internal server error",
+                Detail= ex.InnerException?.Message?? 
+                ex.Message
+            });
+        }
     }
-
-    [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id,CancellationToken ct)
-    {
-        var deleted = await enrollmentService.DeleteAsync(id,ct);
-        return deleted ? NoContent() : NotFound();
-    }
-
-    [HttpPost("archive")]
-public async Task<IActionResult> ArchiveByYear([FromQuery] int year, CancellationToken ct)
-{
-    var count = await enrollmentService.ArchiveByYearAsync(year, ct);
-    return Ok(new { year, archivedCount = count });
 }
-
-}
-
-public record CreateEnrollmentRequest(int StudentId, string CourseCode);

@@ -58,7 +58,7 @@ builder.Services.AddOpenApi(); // Required before MapOpenApi() will work
 // builder.Services.AddTransient<IGradeCalculator, GradeCalculator>();
  builder.Services.AddScoped<StudentService>();
 // Scoped: one instance per HTTP request
-builder.Services.AddScoped<EnrollmentService, EnrollmentService>();
+builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 
 // Singleton: one instance for the whole application
 builder.Services.AddSingleton<IConfigReader, ConfigReader>();
