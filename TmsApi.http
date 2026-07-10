@@ -277,3 +277,34 @@ POST http://localhost:5000/api/courses/9999/enrollments
 Content-Type: application/json
 
 { "studentId": 1 }
+
+
+
+# Exercise 4
+### Test 1: page=1 pageSize=10 → 10 items
+GET http://localhost:5000/api/courses?page=1&pageSize=10
+
+###
+
+### Test 2: page=3 pageSize=10 → 5 items (last page)
+GET http://localhost:5000/api/courses?page=3&pageSize=10
+
+###
+
+### Test 3: pageSize=9999 → capped to 50
+GET http://localhost:5000/api/courses?pageSize=9999
+
+###
+
+### Test 4: search=fund → 1 item (Fundamentals)
+GET http://localhost:5000/api/courses?search=fund
+
+###
+
+### Test 5: orderBy=Code descending=true pageSize=5
+GET http://localhost:5000/api/courses?orderBy=Code&descending=true&pageSize=5
+
+###
+
+### Test 6: single item still works
+GET http://localhost:5000/api/courses/1

@@ -105,4 +105,54 @@ public class CourseService(
       context.Courses
           .AsNoTracking()
           .AnyAsync(c => c.Code == code, ct);
+
+  public async Task<PagedResponse<CourseResponseDto>> GetCoursesAsync(
+      PagedRequest request, CancellationToken ct)
+  {
+    // TODO 1: IQueryable — no tracking
+    IQueryable<Course> query = context.Courses.AsNoTracking();
+
+    // TODO 2: Search filter — ILike = case-insensitive (PostgreSQL)
+    if (!string.IsNullOrWhiteSpace(request.Search))
+      query = query.Where(c =>
+          EF.Functions.ILike(c.Title, $"%{request.Search}%") ||
+          EF.Functions.ILike(c.Code, $"%{request.Search}%"));
+
+    // TODO 3: Count BEFORE paging — total rows
+    var totalCount = await query.CountAsync(ct);
+    // ↑ SELECT COUNT(*) — must be before Skip/Take!
+
+    // TODO 4: OrderBy — whitelist only (no arbitrary string in LINQ)
+    query = request.OrderBy switch
+    {
+      "Code" => request.Descending
+                        ? query.OrderByDescending(c => c.Code)
+                        : query.OrderBy(c => c.Code),
+      "MaxCapacity" => request.Descending
+                        ? query.OrderByDescending(c => c.MaxCapacity)
+                        : query.OrderBy(c => c.MaxCapacity),
+      _ => request.Descending   // default: Title
+                        ? query.OrderByDescending(c => c.Title)
+                        : query.OrderBy(c => c.Title)
+    };
+
+    // TODO 5 + 6: Skip/Take + Select + Materialise
+    var items = await query
+        .Skip((request.Page - 1) * request.PageSize)  // OFFSET
+        .Take(request.PageSize)                          // LIMIT
+        .Select(c => new CourseResponseDto(
+            c.Id, c.Code, c.Title, c.MaxCapacity,
+            c.Enrollments.Count))                        // COUNT subquery
+        .ToListAsync(ct);
+
+    // TODO 6: Return PagedResponse
+    return new PagedResponse<CourseResponseDto>
+    {
+      Items = items,
+      TotalCount = totalCount,
+      Page = request.Page,
+      PageSize = request.PageSize
+    };
+  }
+
 }
