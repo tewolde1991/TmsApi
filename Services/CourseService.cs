@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Tms.Api.Dtos;
 using TmsApi.Data;
 using TmsApi.Entities;
 
@@ -38,4 +39,61 @@ public class CourseService(TmsDbContext context, ILogger<CourseService> logger)
     {
         throw new NotImplementedException();
     }
+
+    public async Task<PagedResponse<CourseResponseDto>> GetCoursesAsync(PagedRequest request, CancellationToken ct)
+    {
+        // step 1 start with a no-tracking filterable Iquerable-nothing excutes yet
+        IQueryable<Course> query = context.Courses.AsNoTracking();
+
+        // step2 apply search filter b/4 counting or paging
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            query = query.Where(c=>
+            EF.Functions.ILike(c.Title, $"%{request.Search}%") || 
+            EF.Functions.ILike(c.Code, $"%{request.Search}%"));
+            
+        }
+        // step3 count the filterd set, b/a any paging happens
+        var totalCount = await query.CountAsync(ct);
+
+        // step 4 apply safe whitelisted sort never trust arbitrary client string
+        IQueryable<Course> sortQuery = request.OrderBy switch
+        {
+            "Code" => request.Descending
+                    ?query.OrderByDescending(c=>c.Code)
+                    :query.OrderBy(c=>c.Code),
+            "MaxCapacity" => request.Descending
+                            ?query.OrderByDescending(c=>c.MaxCapacity)
+                            :query.OrderBy(c=>c.MaxCapacity),
+                            // default
+        _=>request.Descending
+            ?query.OrderByDescending(c=>c.Title)
+            :query.OrderBy(c=>c.Title)
+        };
+        
+        // step5 page then project all still inside the iquerable
+        var items = await sortQuery
+                    .Skip((request.Page - 1) * request.PageSize)
+                    .Take(request.PageSize)
+                    .Select(c=> new CourseResponseDto(
+                        c.Id,
+                        c.Code,
+                        c.Title,
+                        c.MaxCapacity,
+                        c.Enrollments.Count
+                    ))
+                    .ToListAsync(ct);
+
+                    // step 6 assemble the respons
+                    return new PagedResponse<CourseResponseDto>
+                    {
+                        Items = items,
+                        TotalCount = totalCount,
+                        Page = request.Page,
+                        PageSize = request.PageSize
+                    };
+                    throw new NotImplementedException();
+                        
+    }
+    
 }

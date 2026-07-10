@@ -26,3 +26,25 @@ Accept: application/json
 ###
 PATCH http://localhost:5298/api/students/1?name=Alice+FromB
 Accept: application/json
+###
+GET http://localhost:5298/api/courses
+Accept: application/json
+###
+GET http://localhost:5298/api/courses?page=1&pageSize=10
+Accept: application/json
+
+###
+GET http://localhost:5298/api/courses?page=3&pageSize=10
+Accept: application/json
+
+###
+GET http://localhost:5298/api/courses?pageSize=999
+Accept: application/json
+
+###   
+GET http://localhost:5298/api/courses?search=fund
+Accept: application/json
+
+###
+GET http://localhost:5298/api/courses?orderBy=Code&descending=true&pageSize=5
+Accept: application/json
