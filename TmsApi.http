@@ -308,3 +308,61 @@ GET http://localhost:5000/api/courses?orderBy=Code&descending=true&pageSize=5
 
 ### Test 6: single item still works
 GET http://localhost:5000/api/courses/1
+
+
+# Exercise 5
+
+### Test 1: Get course detail + links → 200
+GET http://localhost:5000/api/courses/1
+
+###
+
+### Test 2: Follow enrollments href → 200
+GET http://localhost:5000/api/courses/1/enrollments
+
+###
+
+### Test 3: Enroll until full (repeat until 409)
+POST http://localhost:5000/api/courses/1/enrollments
+Content-Type: application/json
+
+{ "studentId": 1 }
+
+###
+
+### Test 4: Get full course → enroll link gone
+GET http://localhost:5000/api/courses/1
+
+###
+
+### Test 5: Scalar UI
+GET http://localhost:5000/scalar/v1
+
+
+# Exercise 6 - Test ProblemDetails
+
+### Test 1: Get course detail + links → 200
+GET http://localhost:5000/api/courses/1
+
+###
+
+### Test 2: Follow enrollments href → 200
+GET http://localhost:5000/api/courses/1/enrollments
+
+###
+
+### Test 3: Enroll until full (repeat until 409)
+POST http://localhost:5000/api/courses/1/enrollments
+Content-Type: application/json
+
+{ "studentId": 1 }
+
+###
+
+### Test 4: Get full course → enroll link gone
+GET http://localhost:5000/api/courses/1
+
+###
+
+### Test 5: Scalar UI
+GET http://localhost:5000/scalar/v1

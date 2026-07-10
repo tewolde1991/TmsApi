@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
-namespace TmsApi.DTOs;
+namespace TmsApi.Dtos;
 
-public record EnrollStudentRequest
+public record EnrollmentStudentRequest
 {
   // StudentId must be positive integer
   [Range(1, int.MaxValue,

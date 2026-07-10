@@ -9,7 +9,8 @@ public interface IEnrollmentService
 
   Task<EnrollmentResponseDto> CreateAsync(
       int courseId,
-      EnrollStudentRequest request,
+      EnrollmentStudentRequest request,
       CancellationToken ct);
   void GetAllAsync();
+  Task<List<EnrollmentResponseDto>> GetByCourseAsync(int courseId, CancellationToken ct);
 }

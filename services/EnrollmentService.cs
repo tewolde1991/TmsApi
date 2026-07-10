@@ -103,7 +103,7 @@ public class EnrollmentService(
   // TODO 2: CreateAsync — insert + save + log + re-query
   public async Task<EnrollmentResponseDto> CreateAsync(
       int courseId,
-      EnrollStudentRequest request,
+      EnrollmentStudentRequest request,
       CancellationToken ct)
   {
     // ① create entity
@@ -132,4 +132,12 @@ public class EnrollmentService(
   {
     throw new NotImplementedException();
   }
+  public Task<List<EnrollmentResponseDto>> GetByCourseAsync(
+      int courseId, CancellationToken ct) =>
+      context.Enrollments
+          .AsNoTracking()
+          .Where(e => e.CourseId == courseId)
+          .Select(e => new EnrollmentResponseDto(
+              e.Id, e.CourseId, e.StudentId, e.EnrolledAt))
+          .ToListAsync(ct);
 }
