@@ -87,7 +87,7 @@
 //   public async Task<IActionResult> GetCourseById(
 //       int id, CancellationToken ct)
 //   {
-//     // CodeExistsAsync ይህ ቦታ አይደለም ❌
+//     
 //     var course = await courseService.GetByIdAsync(id, ct);
 //     return course is not null ? Ok(course) : NotFound();
 //   }
@@ -96,7 +96,7 @@
 //   [HttpPost]
 //   public async Task<IActionResult> CreateCourse(CreateCourseRequest request, CancellationToken ct)
 //   {
-//     // ✅ CodeExistsAsync ይህ ቦታ ነው — CreateCourse ውስጥ
+//     
 //     if (await courseService.CodeExistsAsync(request.Code, ct))
 //       return Conflict(new ProblemDetails
 //       {
@@ -216,6 +216,8 @@ public class CoursesController(
   public async Task<IActionResult> CreateCourse(
       CreateCourseRequest request, CancellationToken ct)
   {
-    throw new NotImplementedException();
+    var course = await courseService.CreateAsync(request, ct);
+    return CreatedAtAction(nameof(GetCourseById), new { id = course.Id }, course);
   }
+
 }
