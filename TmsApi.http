@@ -27,7 +27,10 @@ Accept: application/json
 PATCH http://localhost:5298/api/students/1?name=Alice+FromB
 Accept: application/json
 ###
-GET http://localhost:5298/api/courses
+GET http://localhost:5298/api/courses/1
+Accept: application/json
+###
+GET http://localhost:5298/api/courses/{1}/enrollments=1
 Accept: application/json
 ###
 GET http://localhost:5298/api/courses?page=1&pageSize=10
