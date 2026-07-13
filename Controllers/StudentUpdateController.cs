@@ -11,12 +11,12 @@ public class StudentUpdateController : ControllerBase
 
   public StudentUpdateController(StudentUpdateService svc) => _svc = svc;
 
-  // PUT /api/studentupdate/1/name?value=Alice+Updated
+  // PUT /api/studentupdate/1/name?firstName=Alice&lastName=Updated
   [HttpPut("{id}/name")]
   public async Task<IActionResult> UpdateName(
-      int id, [FromQuery] string value, CancellationToken ct)
+      int id, [FromQuery] string firstName, [FromQuery] string lastName, CancellationToken ct)
   {
-    var result = await _svc.UpdateNameAsync(id, value, ct);
+    var result = await _svc.UpdateNameAsync(id, firstName, lastName, ct);
     return Ok(result);
   }
 

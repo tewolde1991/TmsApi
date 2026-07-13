@@ -17,9 +17,15 @@ public class StudentConfiguration : IEntityTypeConfiguration<Student>
         builder.HasIndex(s => s.RegistrationNumber)
             .IsUnique();
 
-        builder.Property(s => s.Name)
+        builder.Property(s => s.FirstName)
             .IsRequired()
             .HasMaxLength(100);
+
+        builder.Property(s => s.LastName)
+            .IsRequired()
+            .HasMaxLength(100);
+
+        builder.Ignore(s => s.Name);
 
         builder.Property(s => s.GPA)
             .HasColumnType("numeric(3,2)");
@@ -30,13 +36,15 @@ public class StudentConfiguration : IEntityTypeConfiguration<Student>
         builder.Property<DateTime>("LastUpdated")
             .HasColumnType("timestamp with time zone")
             .IsRequired();
+
         // RowVersion — optimistic concurrency
         builder.Property(s => s.RowVersion)
             .IsRowVersion()
             .IsRequired();
-        builder.HasQueryFilter(s => !s.IsDeleted);
-        builder.Property(s => s.IsDeleted)
 
-                .HasDefaultValue(false);
+        builder.HasQueryFilter(s => !s.IsDeleted);
+
+        builder.Property(s => s.IsDeleted)
+            .HasDefaultValue(false);
     }
 }
