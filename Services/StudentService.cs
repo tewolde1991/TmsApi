@@ -1,138 +1,141 @@
 using Microsoft.EntityFrameworkCore;
+using Tms.Api.Dtos;
 using TmsApi.Data;
 using TmsApi.Entities;
 
 namespace TmsApi.Services;
 
-public class StudentService
+public class StudentService(TmsDbContext context, ILogger<StudentService> logger): IStudentService
 {
-    private readonly TmsDbContext _context;
-
-    public StudentService(TmsDbContext context)
+    public async Task<StudentResponseDto?> GetByIdAsync(
+        int id,  CancellationToken ct )
     {
-        _context = context;
-    }
-    public async Task<List<Student>> GetPagedStudentsAsync(
-        int pageNumber, 
-        int pageSize = 20, 
-        CancellationToken ct = default)
-    {
-        if (pageNumber < 1) pageNumber = 1;
-        if (pageSize < 1 || pageSize > 100) pageSize = 20;
-
-        var students = await _context.Students
-            .OrderBy(s => s.Name)    
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(ct);
-
-        return students;
+   return await context.Students
+                        .AsNoTracking()
+                        .Where(s=>s.Id == id)
+                        .Select(s=> new StudentResponseDto(s.Id,s.RegistrationNumber,s.Name,s.GPA,s.IsActive))
+                        .FirstOrDefaultAsync(ct);
+        
     }
 
-    
-    public async Task<List<object>> GetTop5CoursesAsync(CancellationToken ct = default)
+    public async Task<StudentDetailDto?> GetDetailByIdAsync(int id, CancellationToken ct)
     {
-        var topCourses = await _context.Enrollments
-            .GroupBy(e => e.Course.Title)
-            .Select(g => new 
+        return await context.Students
+                    .AsNoTracking()
+                    .Where(s=>s.Id == id)
+                    .Select(s=> new StudentDetailDto
+                    {
+                        Id = s.Id,
+                        RegistrationNumber = s.RegistrationNumber,
+                        Name = s.Name,
+                        GPA = s.GPA,
+                        IsActive = s.IsActive,
+                        EnrollmentCount = s.Enrollments.Count,
+                        Links = new List<LinkDto>()
+                    })
+                    .FirstOrDefaultAsync(ct); 
+    }
+
+
+public async Task<PagedResponse<StudentResponseDto>> GetStudentsAsync(PagedRequest request, CancellationToken ct)
+    {
+        IQueryable<Student> query = context.Students.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            query = query.Where(s=>EF.Functions.ILike(s.Name,$"%{request.Search}%") ||
+            EF.Functions.ILike(s.RegistrationNumber, $"%{request.Search}%")); 
+            
+        }
+        var totalCount = await query.CountAsync(ct);
+
+        IQueryable<Student> sortedQuery = request.OrderBy switch
+        {
+            "RegistrationNumber" => request.Descending
+                ? query.OrderByDescending(s=>s.RegistrationNumber)
+                :query.OrderBy(s=>s.RegistrationNumber),
+            "GPA" => request.Descending
+                ?query.OrderByDescending(s=>s.GPA)
+                :query.OrderBy(s=>s.GPA),
+            _=> request.Descending
+                ?query.OrderByDescending(s=>s.Name)
+                :query.OrderBy(s=>s.Name)
+        };
+        var items = await sortedQuery
+                    .Skip((request.Page - 1) * request.PageSize)
+                    .Take(request.PageSize)
+                    .Select(s => new StudentResponseDto(s.Id,s.RegistrationNumber,s.Name,s.GPA,s.IsActive))
+                    .ToListAsync(ct);
+
+            return new PagedResponse<StudentResponseDto>
             {
-                CourseTitle = g.Key,
-                EnrollmentCount = g.Count()
-            })
-            .OrderByDescending(x => x.EnrollmentCount)
-            .Take(5)
-            .ToListAsync(ct);
-
-        return topCourses.Cast<object>().ToList();   // Return as List<object> for simplicity
+                Items = items,
+                TotalCount = totalCount,
+                Page = request.Page,
+                PageSize = request.PageSize
+            };
     }
+    
+
+    public async Task<bool> RegistrationNumberExistsAsync(string registrationNumber, CancellationToken ct)
+    {
+        return await context.Students.AnyAsync(s=>s.RegistrationNumber == registrationNumber, ct);
+    }
+
+    public async Task<StudentResponseDto> CreateAsync(CreateStudentRequest request, CancellationToken ct)
+    {
+        if(await RegistrationNumberExistsAsync(request.RegistrationNumber, ct))
+        throw new InvalidOperationException($"Registration number '{request.RegistrationNumber}' already exists.");
+        var student = new Student
+        {
+            RegistrationNumber = request.RegistrationNumber,
+            Name = request.Name,
+            GPA = 0,
+            IsActive = true
+        };
+
+        context.Students.Add(student);
+        await context.SaveChangesAsync(ct);
+
+        logger.LogInformation("Student {RegistrationNumber} registered with Id {StudentId}",student.RegistrationNumber, student.Id);
+
+        return new StudentResponseDto(student.Id, student.RegistrationNumber, student.Name, student.GPA,student.IsActive);
+    }
+
+
 
     // new update student with shadow LastUpdated property
-    public async Task<bool> UpdateStudentAsync(
+    public async Task<StudentResponseDto> UpdateAsync(
         int id,
-        string? newName = null,
-        decimal? newGPA = null,
-        bool? newIsActive = null,
-        CancellationToken ct = default)
+       UpdateStudentRequest request,
+        CancellationToken ct)
     {
-        // load student by primary key
-        var student = await _context.Students.FindAsync(new object[] {id}, ct);
+        var student = await context.Students.FirstOrDefaultAsync(s =>s.Id == id, ct);
         if (student is null)
+           throw new InvalidOperationException($"Student with ID {id} not found.");
+        context.Entry(student).Property(s=>s.Version).OriginalValue = request.Version;
+
+        student.Name = request.Name;
+        student.GPA = request.GPA;
+        student.IsActive = request.IsActive;
+
+        try
         {
-            return false; // Student not found
+            await context.SaveChangesAsync(ct);
         }
-        if (newName is not null)
+        catch (DbUpdateConcurrencyException)
         {
-            student.Name = newName;
+            throw new InvalidOperationException("This student record was modified by someone else. Refresh and try again.");
         }
-        if (newGPA is not null)
-        {
-            student.GPA = newGPA.Value;
-        }
-        if (newIsActive is not null)
-        {
-            student.IsActive = newIsActive.Value;
-        }
-        // set  shadow property lastupdated
-        _context.Entry(student)
-            .Property("LastUpdated")
-            .CurrentValue = DateTime.UtcNow;
-        await _context.SaveChangesAsync(ct);
-        return true;
+
+        return new StudentResponseDto(student.Id, student.RegistrationNumber, student.Name, student.GPA,student.IsActive);
     }
 
-    // existing update method w/o shadow property and concurency handling
 
-    public  async Task<UpdateResult>UpdateStudentWithConcurrencyAsync(
-        int id,
-        string? newName = null,
-        decimal? newGpa = null,
-        bool? newIsActive = null,
-        CancellationToken ct = default
-    )
+
+    public Task<PagedResponse<StudentResponseDto>> GetStudentAsync(int id, CancellationToken ct)
     {
-        var student = await _context.Students.FindAsync(new object[]{id}, ct);
-        if (student is null)
-        {
-            return UpdateResult.NotFound;
-        }
-        // update properties conditionally
-        if (newName is not null)
-        {
-            student.Name = newName;
-        }
-        if(newGpa is not null)
-        {
-            student.GPA = newGpa.Value;
-        }
-        if (newIsActive is not null)
-        {
-            student.IsActive = newIsActive.Value;
-        }
-
-        // shadow last update
-        _context.Entry(student)
-                .Property("LastUpdated")
-                .CurrentValue = DateTime.UtcNow;
-
-                try
-                {
-                    await _context.SaveChangesAsync(ct);
-                    return UpdateResult.Sucess;
-                }
-                catch (DbUpdateConcurrencyException)
-        {
-            // another user updated the same student after we loaded it.
-            // version/xmin changed so our update is rejected
-            return UpdateResult.ConcurrencyConflict;
-        }
-                
+        throw new NotImplementedException();
     }
-        
 }
 
-public enum UpdateResult
-{
-    Sucess,
-    NotFound,
-    ConcurrencyConflict
-}
+   

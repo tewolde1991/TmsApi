@@ -1,68 +1,66 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Linq;
-using TmsApi.Data;
-using TmsApi.Entities;
+using Tms.Api.Dtos;
 using TmsApi.Services;
 namespace TmsApi.Controllers;
 
 
 [ApiController]
 [Route("api/students")]
-
-public class StudentController: ControllerBase
+[Tags("Students")]
+[Produces("application/json")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+public class StudentController( IStudentService studentService, LinkGenerator linkGenerator): ControllerBase
 {
-    private readonly StudentService _service;
-    public StudentController(StudentService service)
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResponse<StudentResponseDto>),StatusCodes.Status200OK)]
+    [EndpointSummary("List student with pagination")]
+    public async Task<IActionResult> GetStudents([FromQuery] PagedRequest request, CancellationToken ct)
     {
-        _service = service;
-    }
-    [HttpGet("paged")]
-    public async Task<IActionResult> GetPagedStudentsAsync(
-        int page = 1, 
-        int pageSize = 20, 
-        CancellationToken ct = default)
-    {
-        var students = await _service.GetPagedStudentsAsync(page, pageSize, ct);
-        return Ok(students);
+        var result = await studentService.GetStudentsAsync(request, ct);
+        return Ok(result);
     }
 
-    [HttpGet("top-courses")]
-    public async Task<IActionResult> GetTopCourses(CancellationToken ct = default)
+    [HttpGet("{id:int}", Name = nameof(GetStudentById))]
+    [ProducesResponseType(typeof(StudentDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [EndpointSummary("Get a student by ID")]
+    public async Task<IActionResult> GetStudentById(int id, CancellationToken ct)
     {
-        var topCourses = await _service.GetTop5CoursesAsync(ct);
-        return Ok(topCourses);
-    }
+        var student = await studentService.GetDetailByIdAsync(id, ct);
+        if (student is null) return NotFound();
 
-
-[HttpPatch("{id}")]
-public async Task<IActionResult> PatchStudent(
-    int id, 
-    string?name, 
-    decimal? gpa,
-     bool? isActive,
-      CancellationToken ct)
-    // {
-    //     var updated = await _service.UpdateStudentAsync(id, name,gpa,isActive, ct);
-
-    //     if(!updated) return NotFound();
-
-    //     return NoContent();
-    // }
-    {
-        var result = await _service.UpdateStudentWithConcurrencyAsync(
-            id,name,gpa,isActive,ct
-        );
-        return result switch
+        var links = new List<LinkDto>
         {
-            UpdateResult.Sucess => NoContent(),
-            UpdateResult.NotFound => NotFound(),
-            UpdateResult.ConcurrencyConflict => Conflict(new
-            {
-                message = "The student was modified by another user. Please reload and try again."
-            }),
-            _ => StatusCode(StatusCodes.Status500InternalServerError)
+            new(linkGenerator.GetPathByName(HttpContext, nameof(GetStudentById), new { id })!, "self", "GET"),
+            new(linkGenerator.GetPathByName(HttpContext, nameof(GetStudentById), new { id })!, "update", "PUT"),
+            new(linkGenerator.GetPathByName(HttpContext, "ListStudentCertificates", new { studentId = id })!, "certificates", "GET")
         };
+
+        var result = student with { Links = links };
+        return Ok(result);
+    }
+
+
+[HttpPost]
+    [ProducesResponseType(typeof(StudentResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [EndpointSummary("Register a new student")]
+    public async Task<IActionResult> RegisterStudent(CreateStudentRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var result = await studentService.CreateAsync(request, ct);
+            return CreatedAtAction(nameof(GetStudentById), new { id = result.Id }, result);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("already exists"))
+        {
+            return Conflict(new ProblemDetails
+            {
+                Title = "Registration number already exists",
+                Detail = ex.Message,
+                Status = StatusCodes.Status409Conflict
+            });
+        }
     }
 }

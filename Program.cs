@@ -44,6 +44,7 @@ using TmsApi.Data;
 using Microsoft.EntityFrameworkCore;
 using TmsApi.Entities;
 using Tms.Api.Filters;
+using Tms.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 // register TmsDbContext scoped for incomming http requests
@@ -66,6 +67,10 @@ builder.Services.AddSingleton<IConfigReader, ConfigReader>();
 
 // register course service here
 builder.Services.AddScoped<ICourseService, CourseService>();
+
+builder.Services.AddScoped<IStudentService, StudentService>();
+builder.Services.AddScoped<ICertificateService, CertificateService>();
+
 // Add services for authentication (training handler)
 builder.Services.AddAuthentication("Training")
     .AddScheme<AuthenticationSchemeOptions, TrainingAuthHandler>("Training", null);
