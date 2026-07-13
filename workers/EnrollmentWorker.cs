@@ -1,3 +1,5 @@
+using TmsApi.Services;
+
 public class EnrollmentWorker(IServiceScopeFactory scopeFactory)
 {
   public void ProcessBatch()

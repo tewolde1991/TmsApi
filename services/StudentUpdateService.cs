@@ -11,13 +11,13 @@ public class StudentUpdateService
   public StudentUpdateService(TmsDbContext db) => _db = db;
 
   public async Task<string> UpdateNameAsync(
-      int id, string newName, CancellationToken ct = default)
+      int id, string newFirstName, string newLastName, CancellationToken ct = default)
   {
     var student = await _db.Students.FindAsync([id], ct);
     if (student is null) return $"Student {id} not found";
 
-    student.Name = newName;
-
+    student.FirstName = newFirstName;
+    student.LastName = newLastName;
 
     _db.Entry(student)
        .Property("LastUpdated")
@@ -33,8 +33,9 @@ public class StudentUpdateService
       // Exercise 8b — concurrency conflict ተከሰተ
       var entry = ex.Entries.Single();
       var db = await entry.GetDatabaseValuesAsync(ct);
-      var dbName = db?["Name"];
-      return $"❌ Concurrency conflict! DB has: Name='{dbName}' — reload and retry.";
+      var dbFirstName = db?["FirstName"];
+      var dbLastName = db?["LastName"];
+      return $"❌ Concurrency conflict! DB has: FirstName='{dbFirstName}', LastName='{dbLastName}' — reload and retry.";
     }
   }
 
@@ -65,7 +66,7 @@ public class StudentUpdateService
     }
   }
 
-  // ── LastUpdated shadow property ያንብቡ ──
+  // ── LastUpdated shadow property ──
   public async Task<string> GetLastUpdatedAsync(int id, CancellationToken ct = default)
   {
     var student = await _db.Students.FindAsync([id], ct);
