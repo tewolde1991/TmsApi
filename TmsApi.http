@@ -365,4 +365,5 @@ GET http://localhost:5000/api/courses/1
 ###
 
 ### Test 5: Scalar UI
-GET http://localhost:5000/scalar/v1
+GET http://localhost:5000/api/v1/courses
+Accept: application/json

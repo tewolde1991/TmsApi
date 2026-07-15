@@ -201,47 +201,190 @@
 
 // Module 6
 
+// using Microsoft.EntityFrameworkCore;
+// using TmsApi.Data;
+// using TmsApi.Entities;
+// using TmsApi.Services;
+// using TmsApi.Filters;
+// using Scalar.AspNetCore;
+// using Asp.Versioning;
+// using TmsApi.Middleware;
+// using Microsoft.AspNetCore.OpenApi;
+
+// var builder = WebApplication.CreateBuilder(args);
+// builder.Services.AddScoped<DashboardService>();
+// builder.Services.AddScoped<EnrollmentReportService>();
+// builder.Services.AddScoped<StudentUpdateService>();
+// builder.Services.AddScoped<ArchiveService>();
+// builder.Services.AddControllers();
+
+
+// builder.Services.AddProblemDetails();
+// builder.Services.AddOpenApi();
+// builder.Services.AddDbContext<TmsDbContext>(options =>
+// options.UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase")));
+// builder.Services.AddControllers(
+// options =>
+// {
+//     options.Filters.Add<AuditLogFilter>();
+// });
+// builder.Services.AddScoped<ICourseService, CourseService>();
+// builder.Services.AddScoped<IStudentService, StudentService>();
+// builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
+// builder.Services.AddOpenApi(documentName: "v1", options =>
+// {
+//     options.ShouldInclude = description => description.GroupName == "V1";
+// });
+// builder.Services.AddOpenApi(documentName: "V2", options =>
+// {
+//     options.ShouldInclude = description => description.GroupName == "V2";
+// });
+
+// builder.Services.AddApiVersioning(options =>
+// {
+//     options.DefaultApiVersion = new ApiVersion(1, 0);
+//     options.AssumeDefaultVersionWhenUnspecified = true;
+//     options.ReportApiVersions = true;
+//     options.ApiVersionReader = new UrlSegmentApiVersionReader();
+// })
+// .AddApiExplorer(options =>
+// {
+//     options.GroupNameFormat = "'V'VVV";
+//     options.SubstituteApiVersionInUrl = true;
+// });
+// // configure the HTTP request pipeline
+// if (app.Environment.IsDevelopment())
+// {
+//     app.MapOpenApi();
+//     app.MapScalarApiReference(configureOptions =>
+//     {
+//         options.WithTitle("TMS API Exlporer");
+//                 .withTheme(ScalarTheme.DeepSpace);
+//                 .withDefualthttpclient(scalartarget.CSharp, ScalarHttpClientType);
+//         // Tell scalar to pull both documents into its sidebar dropdown
+//         options
+//                 .AddDocument("V1", title: "API version 1.0")
+
+//                 .AddDocument("V2", title: "API version 2.0");
+
+
+//     });
+// }
+
+// var app = builder.Build();
+
+// app.UseExceptionHandler();
+// app.UseStatusCodePages();
+// if (app.Environment.IsDevelopment())
+// {
+//     app.MapOpenApi();
+//     app.MapScalarApiReference(); // removed: extension not found. Install/configure the package that provides this extension if needed.
+// }
+// {
+//     using var scope = app.Services.CreateAsyncScope();
+//     var context = scope.ServiceProvider.GetRequiredService<TmsDbContext>();
+//     await DataSeeder.SeedAsync(context);
+// }
+// app.UseMiddleware<V1DeprecationMiddleware>();
+// app.MapControllers();
+// app.Run();
+
+
+
+//  Module 7
 using Microsoft.EntityFrameworkCore;
-using TmsApi.Data;
-using TmsApi.Entities;
-using TmsApi.Services;
-using TmsApi.Filters;
+using Asp.Versioning;
 using Scalar.AspNetCore;
 
-var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddScoped<DashboardService>();
-builder.Services.AddScoped<EnrollmentReportService>();
-builder.Services.AddScoped<StudentUpdateService>();
-builder.Services.AddScoped<ArchiveService>();
-builder.Services.AddControllers();
+using TmsApi.Data;
+using TmsApi.Services;
+using TmsApi.Filters;
+using TmsApi.Middleware;
 
+var builder = WebApplication.CreateBuilder(args);
+
+// -------------------------
+// Register Services
+// -------------------------
 
 builder.Services.AddProblemDetails();
-builder.Services.AddOpenApi();
-builder.Services.AddDbContext<TmsDbContext>(options =>
-options.UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase")));
-builder.Services.AddControllers(
-options =>
+
+builder.Services.AddControllers(options =>
 {
     options.Filters.Add<AuditLogFilter>();
 });
+
+builder.Services.AddDbContext<TmsDbContext>(options =>
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("TmsDatabase")));
+
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 
+builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<EnrollmentReportService>();
+builder.Services.AddScoped<StudentUpdateService>();
+builder.Services.AddScoped<ArchiveService>();
+
+// -------------------------
+// API Versioning
+builder.Services
+    .AddApiVersioning(options =>
+    {
+        options.DefaultApiVersion = new ApiVersion(1, 0);
+        options.AssumeDefaultVersionWhenUnspecified = true;
+        options.ReportApiVersions = true;
+        options.ApiVersionReader = new UrlSegmentApiVersionReader();
+    })
+    .AddApiExplorer(options =>
+    {
+        options.GroupNameFormat = "'v'VVV";  // ← lowercase v
+        options.SubstituteApiVersionInUrl = true;
+    });
+
+// OpenAPI Documents
+builder.Services.AddOpenApi("v1", options =>
+{
+    options.ShouldInclude = description =>
+        description.GroupName == "v1";  // ← lowercase v
+});
+
+builder.Services.AddOpenApi("v2", options =>
+{
+    options.ShouldInclude = description =>
+        description.GroupName == "v2";  // ← lowercase v
+});
+
+// App
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi("/openapi/v1.json");
+    app.MapOpenApi("/openapi/v2.json");
+
+    app.MapScalarApiReference(options =>
+    {
+        options
+            .WithTitle("TMS API Explorer")
+            .WithTheme(ScalarTheme.DeepSpace)
+            .AddDocument("v1", "/openapi/v1.json")
+            .AddDocument("v2", "/openapi/v2.json");
+    });
+}
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+app.UseMiddleware<V1DeprecationMiddleware>();  // ← before MapControllers
+
+// Seed — Development only!
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-    app.MapScalarApiReference(); // removed: extension not found. Install/configure the package that provides this extension if needed.
-}
-{
-    using var scope = app.Services.CreateAsyncScope();
+    using var scope = app.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<TmsDbContext>();
     await DataSeeder.SeedAsync(context);
 }
+
 app.MapControllers();
 app.Run();
