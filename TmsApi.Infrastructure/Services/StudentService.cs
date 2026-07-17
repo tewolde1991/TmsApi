@@ -85,7 +85,7 @@ public async Task<PagedResponse<StudentResponseDto>> GetStudentsAsync(PagedReque
     public async Task<StudentResponseDto> CreateAsync(CreateStudentRequest request, CancellationToken ct)
     {
         if(await RegistrationNumberExistsAsync(request.RegistrationNumber, ct))
-        throw new InvalidOperationException($"Registration number '{request.RegistrationNumber}' already exists.");
+         throw new InvalidOperationException($"Registration number '{request.RegistrationNumber}' already exists.");
         var student = new Student
         {
             RegistrationNumber = request.RegistrationNumber,

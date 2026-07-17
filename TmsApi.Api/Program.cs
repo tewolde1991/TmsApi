@@ -3,9 +3,9 @@ using Scalar.AspNetCore;
 using TmsApi.Infrastructure.Persistence;
 
 using Microsoft.EntityFrameworkCore;
-using TmsApi.Infrastructure.Services;
 using Asp.Versioning;
 using TmsApi.Api.Middlewares;
+using TmsApi.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

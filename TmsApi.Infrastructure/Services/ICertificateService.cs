@@ -6,7 +6,7 @@ namespace TmsApi.Infrastructure.Services;
 
 public interface ICertificateService
 {
-    Task<IReadOnlyList<CertificateResponse>> GetByStudentAsync(int StudentId, CancellationToken ct);
-    Task<CertificateResponse?> GetByIdAsync(int StudentId, int id, CancellationToken ct);
-    Task<CertificateResponse> IssueAsync(int StudentId, IssueCertificateRequest request, CancellationToken ct);
+    Task<IReadOnlyList<CertificateResponse>> GetByStudentAsync(int studentId, CancellationToken ct);
+    Task<CertificateResponse?> GetByIdAsync(int studentId, int id, CancellationToken ct);
+    Task<CertificateResponse> IssueAsync(int studentId, IssueCertificateRequest request, CancellationToken ct);
 }

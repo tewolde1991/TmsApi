@@ -3,8 +3,10 @@ using TmsApi.Domain.Entities;
 
 namespace TmsApi.Infrastructure.Persistence;
 
-public class TmsDbContext(DbContextOptions<TmsDbContext> options) : DbContext(options)
+public class TmsDbContext : DbContext
 {
+    public TmsDbContext(DbContextOptions<TmsDbContext> options) : base(options) { }
+
     public DbSet<Student> Students => Set<Student>();
     public DbSet<Course> Courses => Set<Course>();
 

@@ -60,3 +60,5 @@ Accept: application/json
 GET  http://localhost:5298/api/v2/courses 
 
 Accept: application/json
+
+GET  http://localhost:5298/api/V1Depr

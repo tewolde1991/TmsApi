@@ -1,5 +1,6 @@
-namespace TmsApi.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
+
+namespace TmsApi.Infrastructure.Services;
 
 public interface IConfigReader
 {
