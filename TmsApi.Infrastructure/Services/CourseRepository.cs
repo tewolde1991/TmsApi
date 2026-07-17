@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TmsApi.Application.Interfaces;
 using TmsApi.Domain.Entities;
 using TmsApi.Infrastructure.Persistence;
 

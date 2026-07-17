@@ -1,12 +1,7 @@
+
 using TmsApi.Domain.Entities;
+namespace TmsApi.Application.Interfaces;
 
-namespace TmsApi.Infrastructure.Services;
-
-public interface  ICourseRepository
-{
-    Task <Course?> GetByCodeAsync(string courseCode, CancellationToken ct);
-
-}
 public interface IEnrollmentRepository
 {
     Task<bool> ExistsAsync(int studentId, string courseCode, CancellationToken ct);

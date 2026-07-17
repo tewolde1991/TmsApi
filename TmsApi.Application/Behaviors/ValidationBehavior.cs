@@ -1,9 +1,8 @@
 
-
-
 using FluentValidation;
 using MediatR;
 
+namespace TmsApi.Application.Behaviors;
 public class ValidationBehavior<TRequest, TReponse>(IEnumerable<IValidator<TRequest>> validators): IPipelineBehavior<TRequest, TReponse> where TRequest: notnull
 {
     public async Task<TReponse> Handle(
@@ -11,7 +10,7 @@ public class ValidationBehavior<TRequest, TReponse>(IEnumerable<IValidator<TRequ
     )
     {
         if (!validators.Any())
-        return await next();
+         return await next();
 
         var context = new ValidationContext<TRequest>(request);
         var failures = validators
@@ -23,6 +22,7 @@ public class ValidationBehavior<TRequest, TReponse>(IEnumerable<IValidator<TRequ
             if (failures.Count > 0)
                     throw new ValidationException(failures);
 
-                return await next();
+            
+            return await next(ct);
     }
 }

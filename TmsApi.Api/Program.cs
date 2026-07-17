@@ -4,14 +4,26 @@ using TmsApi.Infrastructure.Persistence;
 
 using Microsoft.EntityFrameworkCore;
 using Asp.Versioning;
+using FluentValidation;
+using MediatR;
+using TmsApi.Api.ExceptionHandlers;
 using TmsApi.Api.Middlewares;
+using TmsApi.Application.Behaviors;
+using TmsApi.Application.Enrollments.Commands;
+using TmsApi.Application.Interfaces;
 using TmsApi.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // builder.Services.AddOpenApi(); 
 
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(EnrollStudentHandler).Assembly));
+builder.Services.AddValidatorsFromAssembly(typeof(EnrollStudentValidator).Assembly);
 
+// loggingBehavior first-it must wrap validation behaviou
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 // builder.Services.AddControllers(options =>
 // {
@@ -68,7 +80,7 @@ builder.Services.AddScoped<ICertificateService, CertificateService>();
 
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
-
+// builder.Services.AddSwaggerGen();
 
 // // Add services for authentication (training handler)
 // builder.Services.AddAuthentication("Training")
@@ -150,7 +162,11 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-
+// if (app.Environment.IsDevelopment())
+// {
+//     app.UseSwagger();
+//     app.UseSwaggerUI();
+// }
 
 app.Run();
 

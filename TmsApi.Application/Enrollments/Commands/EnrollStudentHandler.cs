@@ -1,8 +1,10 @@
 
-
-
 using MediatR;
-using TmsApi.Entities;
+using TmsApi.Application.Common;
+using TmsApi.Application.Interfaces;
+using TmsApi.Domain.Entities;
+
+namespace  TmsApi.Application.Enrollments.Commands;
 
 public class EnrollStudentHandler(IEnrollmentRepository enrollmentRepo, ICourseRepository courseRepo): IRequestHandler<EnrollStudentCommand, Result<EnrollmentCreated, EnrollmentError>>
 {
