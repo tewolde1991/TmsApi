@@ -8,4 +8,9 @@ public class Course
     public int MaxCapacity {get; set;}
 
     public ICollection<Enrollment> Enrollments {get; set;} = new List<Enrollment>();
+
+    public object Select(Func<object, object> func)
+    {
+        throw new NotImplementedException();
+    }
 }

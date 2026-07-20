@@ -12,6 +12,7 @@ using TmsApi.Application.Behaviors;
 using TmsApi.Application.Enrollments.Commands;
 using TmsApi.Application.Interfaces;
 using TmsApi.Infrastructure.Services;
+using IEnrollmentRepository = TmsApi.Application.Interfaces.IEnrollmentRepository;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -67,6 +68,8 @@ builder.Services.AddProblemDetails();
 builder.Services.AddScoped<StudentService>();
 // Scoped: one instance per HTTP request
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
+builder.Services.AddScoped<ICourseRepository, CourseRepository>();
+builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 
 // Singleton: one instance for the whole application
 builder.Services.AddSingleton<IConfigReader, ConfigReader>();
@@ -80,6 +83,7 @@ builder.Services.AddScoped<ICertificateService, CertificateService>();
 
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
+builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 // builder.Services.AddSwaggerGen();
 
 // // Add services for authentication (training handler)
