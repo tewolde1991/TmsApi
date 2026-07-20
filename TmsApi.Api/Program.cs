@@ -1,18 +1,18 @@
 
 //  Module 7
-using Microsoft.EntityFrameworkCore;
 using Asp.Versioning;
+using FluentValidation;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
-// using Microsoft.AspNetCore.Http;
-// using Microsoft.AspNetCore.Mvc.Filters;
-// using System.Threading.Tasks;
-// using FluentValidation;
-
+using TmsApi.Api.ExceptionHandlers;
+using TmsApi.Api.middileware;
+using TmsApi.Application.Behaviors;
+using TmsApi.Application.Commands;
+using TmsApi.Application.Interfaces;
+using TmsApi.Infrastructure.Data;
 using TmsApi.Infrastructure.Persistence;
 using TmsApi.Infrastructure.Services;
-using TmsApi.Api.middileware;
-using TmsApi.Infrastructure.Data;
-// using TmsApi.Api.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,10 +22,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddProblemDetails();
 
-builder.Services.AddControllers(options =>
-{
-    // options.Filters.Add<AuditLogFilter>();
-});
+builder.Services.AddControllers();
 
 builder.Services.AddDbContext<TmsDbContext>(options =>
     options.UseNpgsql(
@@ -33,10 +30,8 @@ builder.Services.AddDbContext<TmsDbContext>(options =>
 
 builder.Services.AddScoped<ICourseService, CourseService>();
 
-IServiceCollection serviceCollection2 = builder.Services.AddScoped<IStudentService, StudentService>();
-
-IServiceCollection serviceCollection1 = serviceCollection2;
-IServiceCollection serviceCollection = builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
+builder.Services.AddScoped<IStudentService, StudentService>();
+builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 
 builder.Services.AddScoped<DashboardService>();
 builder.Services.AddScoped<EnrollmentReportService>();
@@ -73,8 +68,15 @@ builder.Services.AddOpenApi("v2", options =>
 });
 
 
-builder.Services.AddDbContext<TmsDbContext>(options =>
-                options.UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase")));
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(EnrollStudentHandler).Assembly));
+builder.Services.AddValidatorsFromAssembly(typeof(EnrollStudentValidator).Assembly);
+// LoggingBehavior FIRST—it must wrap ValidationBehavior 
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>)); 
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>)); 
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>(); 
+
+builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
+builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 // App
 var app = builder.Build();
 
@@ -95,7 +97,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
-app.UseMiddleware<V1DeprecationMiddleware>();  // ← before MapControllers
+app.UseMiddleware<V1DeprecationMiddleware>();
 
 // Seed — Development only!
 if (app.Environment.IsDevelopment())

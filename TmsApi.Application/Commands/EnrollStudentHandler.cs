@@ -1,27 +1,25 @@
-// using MediatR;
-// using TmsApi.Common;
-// using TmsApi.Entities;
+using MediatR;
+using TmsApi.Application.Common;
+using TmsApi.Domain.Entities;
+using TmsApi.Application.Interfaces;
 
-// namespace TmsApi.Enrollments.Commands;
+namespace TmsApi.Application.Commands;
 
-// public class EnrollStudentHandler(
-//     IEnrollmentRepository enrollmentRepo,
-//     ICourseRepository courseRepo)
-//     : IRequestHandler<EnrollStudentCommand, Result<EnrollmentCreated,
-// EnrollmentError>>
-// {
-//   public async Task<Result<EnrollmentCreated, EnrollmentError>> Handle(
-//       EnrollStudentCommand command, CancellationToken ct)
-//   {
-//     var course = await courseRepo.GetByCodeAsync(command.CourseCode, ct);
-//     if (course is null)
-//       return Result<EnrollmentCreated, EnrollmentError>.Failure(
-//           EnrollmentError.CourseNotFound(command.CourseCode));
+public class EnrollStudentHandler( IEnrollmentRepository enrollmentRepo, ICourseRepository courseRepo)
+    : IRequestHandler<EnrollStudentCommand, Result<EnrollmentCreated,
+EnrollmentError>>
+{
+  public async Task<Result<EnrollmentCreated, EnrollmentError>> Handle(
+      EnrollStudentCommand command, CancellationToken ct)
+  {
+    var course = await courseRepo.GetByCodeAsync(command.CourseCode, ct);
+    if (course is null)
+      return Result<EnrollmentCreated, EnrollmentError>.Failure(
+          EnrollmentError.CourseNotFound);
 
-//     if (course.Enrollments.Count >= course.MaxCapacity)
-//       return Result<EnrollmentCreated, EnrollmentError>.Failure(
-//           EnrollmentError.CourseFull(course.Title,
-// course.MaxCapacity));
+    if (course.Enrollments.Count >= course.MaxCapacity)
+      return Result<EnrollmentCreated, EnrollmentError>.Failure(
+          EnrollmentError.CourseFull);
 
 //     if (await enrollmentRepo.ExistsAsync(command.StudentId,
 // command.CourseCode, ct))
@@ -29,16 +27,16 @@
 //           EnrollmentError.AlreadyEnrolled(command.StudentId,
 // command.CourseCode));
 
-//     var enrollment = new Enrollment
-//     {
-//       StudentId = command.StudentId,
-//       CourseId = course.Id,
-//       EnrolledAt = DateTime.UtcNow
-//     };
+    var enrollment = new Enrollment
+    {
+      StudentId = command.StudentId,
+      CourseId = course.Id,
+      EnrolledAt = DateTime.UtcNow
+    };
 
-//     await enrollmentRepo.AddAsync(enrollment, ct);
-//     return Result<EnrollmentCreated, EnrollmentError>.Success(
-//         new EnrollmentCreated(enrollment.Id, enrollment.StudentId,
-// course.Code));
-//   }
-// }
+    await enrollmentRepo.AddAsync(enrollment, ct);
+    return Result<EnrollmentCreated, EnrollmentError>.Success(
+        new EnrollmentCreated(enrollment.Id, enrollment.StudentId,
+course.Code));
+  }
+}

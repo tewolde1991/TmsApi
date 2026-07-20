@@ -1,10 +1,10 @@
-// using MediatR;
-// using TmsApi.Common;
+using MediatR;
+using TmsApi.Application.Common;
 
-// namespace TmsApi.Enrollments.Commands;
+namespace TmsApi.Application.Commands;
 
-// public record EnrollStudentCommand(int StudentId, string CourseCode)
-//     : IRequest<Result<EnrollmentCreated, EnrollmentError>>;
+public record EnrollStudentCommand(int StudentId, string CourseCode)
+    : IRequest<Result<EnrollmentCreated, EnrollmentError>>;
 
-// public record EnrollmentCreated(int EnrollmentId, int StudentId, string
-// CourseCode);
+public record EnrollmentCreated(int EnrollmentId, int StudentId, string
+CourseCode);

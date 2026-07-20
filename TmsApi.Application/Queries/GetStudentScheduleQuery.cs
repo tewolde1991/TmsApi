@@ -1,8 +1,8 @@
-// using MediatR;
+using MediatR;
 
-// namespace TmsApi.Enrollments.Queries;
+namespace TmsApi.Application.Queries;
 
-// public record GetStudentScheduleQuery(int StudentId) : IRequest<ScheduleDto>;
+public record GetStudentScheduleQuery(int StudentId) : IRequest<ScheduleDto>;
 
-// public record ScheduleDto(int StudentId, List<ScheduleItemDto> Courses);
-// public record ScheduleItemDto(string CourseCode, string Title, string Schedule);
+public record ScheduleDto(int StudentId, List<ScheduleItemDto> Courses);
+public record ScheduleItemDto(string CourseCode, string Title, string Schedule);
