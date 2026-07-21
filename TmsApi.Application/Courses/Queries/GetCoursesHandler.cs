@@ -3,7 +3,7 @@ using TmsApi.Application.Interfaces;
 
 namespace TmsApi.Application.Courses.Queries;
 
-public class GetCoursesHandler(ICourseRepository courseRepo)
+public class GetCoursesHandler(ICachedCourseService cachedService)
     : IRequestHandler<GetCoursesQuery, GetCoursesResult>
 {
     public async Task<GetCoursesResult> Handle(
@@ -13,25 +13,27 @@ public class GetCoursesHandler(ICourseRepository courseRepo)
         var page = Math.Max(1, query.Page);
         var pageSize = Math.Clamp(query.PageSize, 1, 50);
 
-        var totalCount = await courseRepo.CountAsync(ct);
+        var allCourses = await cachedService.GetAllCoursesAsync(ct);
 
-        var courses = await courseRepo.GetPagedWithEnrollmentsAsync(
-            page,
-            pageSize,
-            ct);
+        var totalCount = allCourses.Count;
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+        var hasNext = page < totalPages;
+        var hasPrevious = page > 1;
 
-        var rows = courses
+        var pageItems = allCourses
+            .OrderBy(c => c.Title)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        var rows = pageItems
             .Select(c => new CourseListItemDto(
                 c.Id,
                 c.Title,
                 c.Code,
                 c.MaxCapacity,
-                c.Enrollments.Count))
+                c.EnrollmentCount))
             .ToList();
-
-        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-        var hasNext = page < totalPages;
-        var hasPrevious = page > 1;
 
         return new GetCoursesResult(
             rows,

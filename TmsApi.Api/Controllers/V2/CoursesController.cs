@@ -1,7 +1,7 @@
 using Asp.Versioning;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using TmsApi.Infrastructure.Persistence;
+using TmsApi.Application.Courses.Queries;
 
 
 namespace TmsApi.Api.Controllers.V2;
@@ -9,63 +9,19 @@ namespace TmsApi.Api.Controllers.V2;
 [ApiController]
 [Route("api/v{version:apiVersion}/courses")]
 [ApiVersion("2.0")]
-public class CoursesController(TmsDbContext context) : ControllerBase
+public class CoursesController(ISender sender) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetCourses(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
-        CancellationToken ct = default
-    )
+        CancellationToken ct = default)
     {
-        page = Math.Max(1, page);
-        pageSize = Math.Clamp(pageSize, 1, 50);
-        var baseQuery = context.Courses.AsNoTracking();
-        var totalCount = await baseQuery.CountAsync(ct);
+        var result = await sender.Send(
+            new GetCoursesQuery(page, pageSize),
+            ct);
 
-
-        var rows = await baseQuery
-            .OrderBy(c => c.Title)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(c => new
-            {
-                c.Id,
-                c.Title,
-                c.Code,
-                c.MaxCapacity,
-                EnrollmentCount = c.Enrollments.Count
-            })
-            .ToListAsync(ct);
-
-
-        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-        var hasNext = page < totalPages;
-        var hasPrevious = page > 1;
-        return Ok(new
-        {
-            data = rows,
-            meta = new
-            {
-                totalCount,
-                page,
-                pageSize,
-                totalPages,
-                hasNext,
-                hasPrevious
-            },
-            links = new
-            {
-                self = $"/api/v2/courses?page={page}&pageSize={pageSize}",
-                next = hasNext
-                    ? $"/api/v2/courses?page={page + 1}&pageSize={pageSize}"
-                    : (string?)null,
-                prev = hasPrevious
-                    ? $"/api/v2/courses?page={page - 1}&pageSize={pageSize}"
-                    : (string?)null,
-                enroll = "/api/v2/enrollments"
-            }
-        });
+        return Ok(result);
     }
 }
 

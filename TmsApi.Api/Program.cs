@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Asp.Versioning;
 using FluentValidation;
 using MediatR;
+using Microsoft.Extensions.Caching.Hybrid;
 using TmsApi.Api.ExceptionHandlers;
 using TmsApi.Api.Middlewares;
 using TmsApi.Application.Behaviors;
@@ -105,6 +106,25 @@ builder.Host.UseDefaultServiceProvider(options =>
 // {
 //     // options.Filters.Add<AuditLogFilter>();
 // });
+
+builder.Services.AddHybridCache(options =>
+{
+    options.DefaultEntryOptions = new HybridCacheEntryOptions
+    {
+        Expiration = TimeSpan.FromMinutes(10),
+        LocalCacheExpiration = TimeSpan.FromMinutes(2)
+    };
+});
+builder.Services.AddScoped<ICachedCourseService, CachedCourseService>();
+// // production-only 
+// builder.Services.AddStackExchangeRedisCache(options =>
+// {
+// options.Configuration =
+//     builder.Configuration.GetConnectionString("Redis");
+// options.InstanceName = "tms:";
+// });
+// builder.Services.AddHybridCache();
+// };
 var app = builder.Build();
 
 // 1. Custom logging middleware FIRST (wraps everything)

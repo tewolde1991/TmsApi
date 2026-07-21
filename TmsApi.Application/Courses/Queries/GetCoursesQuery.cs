@@ -2,7 +2,9 @@
 using MediatR;
 
 namespace TmsApi.Application.Courses.Queries;
-public record GetCoursesQuery(int Page, int PageSize): IRequest<IReadOnlyList<CourseListItemDto>>, IRequest, IRequest<GetCoursesResult>;
+public record GetCoursesQuery(
+    int Page,
+    int PageSize): IRequest<GetCoursesResult>;
 
 public record  CourseListItemDto(
     int Id,

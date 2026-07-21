@@ -34,10 +34,7 @@ public class CourseRepository : ICourseRepository
             .ToListAsync(ct);
     }
 
-    public async Task<int> CountAsync(CancellationToken ct)
-    {
-        return await _context.Courses.CountAsync(ct);
-    }
+
 
     public Task<IReadOnlyList<Course>> GetPagedWithEnrollmentsAsync(int page, int pageSize, CancellationToken ct)
     {
@@ -49,5 +46,23 @@ public class CourseRepository : ICourseRepository
         await _context.Courses.AddAsync(course, ct);
         await _context.SaveChangesAsync(ct);
         return course;
+    }
+
+    public async Task UpdateAsync(Course course, CancellationToken ct)
+    {
+        _context.Courses.Update(course);
+        await _context.SaveChangesAsync(ct);
+    }
+
+    public async Task<int> CountAsync(CancellationToken ct)
+    {
+        return await _context.Courses.CountAsync(ct);
+    }
+
+    public async Task<Course?> GetByIdAsync(int id, CancellationToken ct)
+    {
+        return await _context.Courses
+            .Include(c => c.Enrollments)
+            .FirstOrDefaultAsync(c => c.Id == id, ct);
     }
 }

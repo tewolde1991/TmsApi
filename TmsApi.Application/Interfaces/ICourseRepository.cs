@@ -9,7 +9,9 @@ public interface  ICourseRepository
     Task<Course> AddAsync(Course course, CancellationToken ct);
 
     Task<int> CountAsync(CancellationToken ct);
+    Task UpdateAsync(Course course, CancellationToken ct);
 
+    Task<Course?> GetByIdAsync(int id, CancellationToken ct); 
     Task<IReadOnlyList<Course>> GetPagedWithEnrollmentsAsync(
         int page,
         int pageSize,

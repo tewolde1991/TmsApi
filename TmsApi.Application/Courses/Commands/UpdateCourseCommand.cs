@@ -1,0 +1,10 @@
+using MediatR;
+
+namespace TmsApi.Application.Courses.Commands;
+
+public record UpdateCourseCommand(
+    int Id,
+    string Title,
+    string Code,
+    int MaxCapacity
+) : IRequest<bool>;
