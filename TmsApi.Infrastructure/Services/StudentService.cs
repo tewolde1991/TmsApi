@@ -9,15 +9,36 @@ namespace TmsApi.Infrastructure.Services;
 
 public class StudentService(TmsDbContext context) : IStudentService
 {
+    private static StudentResponseDto MapToDto(Student student) =>
+        new(
+            student.Id,
+            student.RegistrationNumber,
+            student.FirstName,
+            student.LastName,
+            student.Email,
+            student.GPA,
+            student.IsActive,
+            student.Enrollments.Count,
+            student.Enrollments
+                .Where(e => e.Course != null)
+                .Select(e => new StudentCourseDto(
+                    e.CourseId,
+                    e.Course.Code,
+                    e.Course.Title))
+                .ToList());
+
     // ---------- READ (single) ----------
-    public Task<StudentResponseDto?> GetByIdAsync(int id, CancellationToken ct) =>
-        context.Students
+    public async Task<StudentResponseDto?> GetByIdAsync(int id, CancellationToken ct)
+    {
+        var student = await context.Students
             .AsNoTracking()
             .Where(s => s.Id == id && !s.IsDeleted)
-            .Select(s => new StudentResponseDto(
-                s.Id, s.RegistrationNumber, s.FirstName, s.LastName,
-                s.Email, s.GPA, s.IsActive, s.Enrollments.Count))
+            .Include(s => s.Enrollments)
+                .ThenInclude(e => e.Course)
             .FirstOrDefaultAsync(ct);
+
+        return student is null ? null : MapToDto(student);
+    }
 
     // ---------- READ (list, paginated) ----------
     public async Task<PagedResponse<StudentResponseDto>> GetStudentsAsync(
@@ -25,7 +46,9 @@ public class StudentService(TmsDbContext context) : IStudentService
     {
         IQueryable<Student> query = context.Students
             .AsNoTracking()
-            .Where(s => !s.IsDeleted);
+            .Where(s => !s.IsDeleted)
+            .Include(s => s.Enrollments)
+                .ThenInclude(e => e.Course);
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
@@ -57,14 +80,13 @@ public class StudentService(TmsDbContext context) : IStudentService
         var items = await sortedQuery
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
-            .Select(s => new StudentResponseDto(
-                s.Id, s.RegistrationNumber, s.FirstName, s.LastName,
-                s.Email, s.GPA, s.IsActive, s.Enrollments.Count))
             .ToListAsync(ct);
+
+        var mappedItems = items.Select(MapToDto).ToList();
 
         return new PagedResponse<StudentResponseDto>
         {
-            Items = items,
+            Items = mappedItems,
             TotalCount = totalCount,
             Page = request.Page,
             PageSize = request.PageSize
@@ -95,7 +117,8 @@ public class StudentService(TmsDbContext context) : IStudentService
 
         return new StudentResponseDto(
             student.Id, student.RegistrationNumber, student.FirstName,
-            student.LastName, student.Email, student.GPA, student.IsActive, 0);
+            student.LastName, student.Email, student.GPA, student.IsActive, 0,
+            Array.Empty<StudentCourseDto>());
     }
 
     // ---------- UPDATE ----------
@@ -104,6 +127,8 @@ public class StudentService(TmsDbContext context) : IStudentService
     {
         var student = await context.Students
             .Where(s => s.Id == id && !s.IsDeleted)
+            .Include(s => s.Enrollments)
+                .ThenInclude(e => e.Course)
             .FirstOrDefaultAsync(ct);
 
         if (student is null) return null;
@@ -116,10 +141,7 @@ public class StudentService(TmsDbContext context) : IStudentService
 
         await context.SaveChangesAsync(ct);
 
-        return new StudentResponseDto(
-            student.Id, student.RegistrationNumber, student.FirstName,
-            student.LastName, student.Email, student.GPA, student.IsActive,
-            student.Enrollments.Count);
+        return MapToDto(student);
     }
 
     // ---------- DELETE (soft delete) ----------

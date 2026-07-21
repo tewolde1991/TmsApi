@@ -8,5 +8,12 @@ public record StudentResponseDto(
     string Email,
     decimal GPA,
     bool IsActive,
-    int EnrollmentCount
+    int EnrollmentCount,
+    IReadOnlyList<StudentCourseDto>? Courses = null
+);
+
+public record StudentCourseDto(
+    int CourseId,
+    string CourseCode,
+    string Title
 );

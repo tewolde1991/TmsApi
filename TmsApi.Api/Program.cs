@@ -1,5 +1,5 @@
 
-//  Module 7
+//  Module 7 Ex3
 using Asp.Versioning;
 using FluentValidation;
 using MediatR;
@@ -13,6 +13,10 @@ using TmsApi.Application.Interfaces;
 using TmsApi.Infrastructure.Data;
 using TmsApi.Infrastructure.Persistence;
 using TmsApi.Infrastructure.Services;
+using Microsoft.Extensions.Caching.Hybrid;
+using TmsApi.Infrastructure.Caching;
+// using TmsApi.Application.Interfaces;
+// using Microsoft.Extensions.Caching.Hybrid;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -77,6 +81,16 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
+builder.Services.AddScoped<ICachedCourseService, CachedCourseService>();
+builder.Services.AddHybridCache(options =>
+{
+    options.DefaultEntryOptions = new HybridCacheEntryOptions
+    {
+        Expiration = TimeSpan.FromMinutes(10),
+    };
+});
+
+
 // App
 var app = builder.Build();
 

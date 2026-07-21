@@ -81,7 +81,6 @@ public class CoursesController(
   }
 
   // POST /api/courses — create new course
-
   [HttpPost]
   [ProducesResponseType(typeof(CourseResponseDto), StatusCodes.Status201Created)]
   [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
@@ -93,6 +92,33 @@ public class CoursesController(
   {
     var course = await courseService1.CreateAsync(request, ct);
     return CreatedAtAction(nameof(GetCourseById), new { id = course.Id }, course);
+  }
+
+  // PUT /api/courses/{id} — update course
+  [HttpPut("{id:int}")]
+  [ProducesResponseType(typeof(CourseResponseDto), StatusCodes.Status200OK)]
+  [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+  [EndpointSummary("Update a course")]
+  [EndpointDescription("Updates the course code, title, and capacity.")]
+  public async Task<IActionResult> UpdateCourse(
+      int id, UpdateCourseRequest request, CancellationToken ct)
+  {
+    var updated = await courseService.UpdateAsync(id, request, ct);
+    if (updated is null) return NotFound();
+    return Ok(updated);
+  }
+
+  // DELETE /api/courses/{id} — delete course
+  [HttpDelete("{id:int}")]
+  [ProducesResponseType(StatusCodes.Status204NoContent)]
+  [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+  [EndpointSummary("Delete a course")]
+  [EndpointDescription("Deletes a course from the system.")]
+  public async Task<IActionResult> DeleteCourse(int id, CancellationToken ct)
+  {
+    var deleted = await courseService.DeleteAsync(id, ct);
+    if (!deleted) return NotFound();
+    return NoContent();
   }
 
 }

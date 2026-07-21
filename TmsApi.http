@@ -1,3 +1,4 @@
+### Enroll student
 POST http://localhost:5000/api/v2/enrollments
 Content-Type: application/json
 
@@ -5,3 +6,59 @@ Content-Type: application/json
   "studentId": 1,
   "courseCode": "CSE-101"
 }
+
+###
+
+### Get student schedule
+GET http://localhost:5000/api/v2/enrollments/1/schedule
+Accept: application/json
+
+###
+
+### Create student
+POST http://localhost:5000/api/students
+Content-Type: application/json
+
+{
+  "registrationNumber": "STU-001",
+  "firstName": "Alice",
+  "lastName": "Kebede",
+  "email": "alice@example.com",
+  "gpa": 3.8
+}
+
+###
+
+### Get students
+GET http://localhost:5000/api/students?page=1&pageSize=10
+Accept: application/json
+
+###
+
+### Create course
+POST http://localhost:5000/api/courses
+Content-Type: application/json
+
+{
+  "code": "CSE-101",
+  "title": "Introduction to Computer Science",
+  "maxCapacity": 30
+}
+
+###
+
+### Get courses
+GET http://localhost:5000/api/courses?page=1&pageSize=10
+Accept: application/json
+
+###
+
+### Test deferred query
+GET http://localhost:5000/api/test/deferred
+Accept: application/json
+
+###
+
+### Test translation fail query
+GET http://localhost:5000/api/test/translation-fail
+Accept: application/json
