@@ -16,4 +16,8 @@ public interface  ICourseRepository
         int page,
         int pageSize,
         CancellationToken ct);
+
+    Task<IReadOnlyList<Course>> SearchAsync(
+        string? term,
+        CancellationToken ct);
 }

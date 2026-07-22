@@ -65,4 +65,24 @@ public class CourseRepository : ICourseRepository
             .Include(c => c.Enrollments)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
     }
+
+    public async Task<IReadOnlyList<Course>> SearchAsync(string? term, CancellationToken ct)
+    {
+        var query = _context.Courses
+            .AsNoTracking()
+            .Include(c => c.Enrollments)
+            .AsQueryable();
+        if (!string.IsNullOrWhiteSpace(term))
+        {
+            term = term.Trim();
+           query = query.Where(c =>
+               EF.Functions.ILike(c.Title, $"%{term}%") ||
+               EF.Functions.ILike(c.Code, $"%{term}%"));
+        }
+
+        return await query
+            .OrderBy(c => c.Title)
+            .Take(50)
+            .ToListAsync(ct);
+    }
 }

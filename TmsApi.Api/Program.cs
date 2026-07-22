@@ -1,4 +1,5 @@
 
+using System.Threading.RateLimiting;
 using Scalar.AspNetCore;
 using TmsApi.Infrastructure.Persistence;
 
@@ -6,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Asp.Versioning;
 using FluentValidation;
 using MediatR;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Hybrid;
 using TmsApi.Api.ExceptionHandlers;
 using TmsApi.Api.Middlewares;
@@ -14,7 +16,8 @@ using TmsApi.Application.Enrollments.Commands;
 using TmsApi.Application.Interfaces;
 using TmsApi.Infrastructure.Services;
 using IEnrollmentRepository = TmsApi.Application.Interfaces.IEnrollmentRepository;
-
+using Microsoft.AspNetCore.RateLimiting;
+using TmsApi.Api.RateLimiting;
 var builder = WebApplication.CreateBuilder(args);
 
 // builder.Services.AddOpenApi(); 
@@ -107,6 +110,84 @@ builder.Host.UseDefaultServiceProvider(options =>
 //     // options.Filters.Add<AuditLogFilter>();
 // });
 
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+    {
+        var (partitionKey, tier) = ApiKeyResolver.Resolve(httpContext);
+
+        return tier switch
+        {
+            ApiKeyTier.Paid => RateLimitPartition.GetTokenBucketLimiter(
+            partitionKey: $"paid:{partitionKey}",
+            factory: _ => new TokenBucketRateLimiterOptions
+            {
+                TokenLimit = 200,
+                TokensPerPeriod = 100,
+                ReplenishmentPeriod = TimeSpan.FromSeconds(10),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }),
+        ApiKeyTier.Free => RateLimitPartition.GetTokenBucketLimiter(
+            partitionKey: $"free: {partitionKey}",
+            factory: _ => new TokenBucketRateLimiterOptions
+            {
+                TokenLimit = 30,
+                TokensPerPeriod = 10,
+                ReplenishmentPeriod = TimeSpan.FromSeconds(10),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }),
+        _ => RateLimitPartition.GetTokenBucketLimiter(
+            partitionKey: $"ano: {partitionKey}",
+            factory: _ => new TokenBucketRateLimiterOptions
+            {
+                TokenLimit = 10,
+                TokensPerPeriod = 5,
+                ReplenishmentPeriod = TimeSpan.FromSeconds(10),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            })
+
+        };
+    });
+
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, ct) =>
+    {
+        var retryAfter = "10";
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var ts))
+
+            retryAfter = ((int)ts.TotalSeconds).ToString();
+
+        context.HttpContext.Response.Headers.RetryAfter = retryAfter;
+        context.HttpContext.Response.ContentType = "application/problem+json";
+        await context.HttpContext.Response.WriteAsJsonAsync(new ProblemDetails
+        {
+            Title = "Rate limit exceed",
+            Detail = $"Too many request. Retry after {retryAfter} seconds.",
+            Status = StatusCodes.Status429TooManyRequests,
+            Type = "https://tms.local/errors/rate_limit_exceeded"
+        }, ct);
+    };
+
+    options.AddConcurrencyLimiter("transcripts", opt =>
+    {
+        opt.PermitLimit = 5;
+        opt.QueueLimit = 20;
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+    });
+
+    options.AddTokenBucketLimiter("search", opt =>
+    {
+        opt.TokenLimit = 10;
+        opt.TokensPerPeriod = 5;
+        opt.ReplenishmentPeriod = TimeSpan.FromSeconds(10);
+        opt.QueueLimit = 2;
+    });
+});
+
 builder.Services.AddHybridCache(options =>
 {
     options.DefaultEntryOptions = new HybridCacheEntryOptions
@@ -115,6 +196,7 @@ builder.Services.AddHybridCache(options =>
         LocalCacheExpiration = TimeSpan.FromMinutes(2)
     };
 });
+builder.Services.AddHealthChecks();
 builder.Services.AddScoped<ICachedCourseService, CachedCourseService>();
 // // production-only 
 // builder.Services.AddStackExchangeRedisCache(options =>
@@ -126,7 +208,8 @@ builder.Services.AddScoped<ICachedCourseService, CachedCourseService>();
 // builder.Services.AddHybridCache();
 // };
 var app = builder.Build();
-
+app.MapHealthChecks("/health/live").DisableRateLimiting();
+app.MapHealthChecks("/health/ready").DisableRateLimiting();
 // 1. Custom logging middleware FIRST (wraps everything)
 // app.UseMiddleware<RequestLoggingMiddleware>();
 // 2. Exception handler (so errors also get logged and return ProblemDetails later)
@@ -144,7 +227,7 @@ app.UseExceptionHandler(exceptionHandlerApp =>
 // // 3. Standard middleware
 // app.UseHttpsRedirection();
 app.UseRouting();
-
+app.UseRateLimiter();
 // 4. Authentication & Authorization (still before endpoints)
 app.UseAuthentication();
 app.UseAuthorization();
