@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using TmsApi.Application.Dtos;
 using TmsApi.Infrastructure.Caching;
 using TmsApi.Infrastructure.Persistence;
-
 namespace TmsApi.Infrastructure.Services;
 
 public class CachedCourseService(

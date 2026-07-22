@@ -1,64 +1,27 @@
-### Enroll student
-POST http://localhost:5000/api/v2/enrollments
+### Test 1: Anonymous — 200 (first 10)
+GET http://localhost:5000/api/v2/courses
+
+###
+
+### Test 2: Anonymous — 429 (after 10)
+GET http://localhost:5000/api/v2/courses
+
+###
+
+### Test 3: Paid tier — always 200
+GET http://localhost:5000/api/v2/courses
+X-Api-Key: tms-paid-001
+
+###
+
+### Test 4: Free tier
+GET http://localhost:5000/api/v2/courses
+X-Api-Key: tms-free-demo-001
+
+###
+
+### Test 5: Transcript (concurrency limiter)
+POST http://localhost:5000/api/v2/transcripts
 Content-Type: application/json
 
-{
-  "studentId": 1,
-  "courseCode": "CSE-101"
-}
-
-###
-
-### Get student schedule
-GET http://localhost:5000/api/v2/enrollments/1/schedule
-Accept: application/json
-
-###
-
-### Create student
-POST http://localhost:5000/api/students
-Content-Type: application/json
-
-{
-  "registrationNumber": "STU-001",
-  "firstName": "Alice",
-  "lastName": "Kebede",
-  "email": "alice@example.com",
-  "gpa": 3.8
-}
-
-###
-
-### Get students
-GET http://localhost:5000/api/students?page=1&pageSize=10
-Accept: application/json
-
-###
-
-### Create course
-POST http://localhost:5000/api/courses
-Content-Type: application/json
-
-{
-  "code": "CSE-101",
-  "title": "Introduction to Computer Science",
-  "maxCapacity": 30
-}
-
-###
-
-### Get courses
-GET http://localhost:5000/api/courses?page=1&pageSize=10
-Accept: application/json
-
-###
-
-### Test deferred query
-GET http://localhost:5000/api/test/deferred
-Accept: application/json
-
-###
-
-### Test translation fail query
-GET http://localhost:5000/api/test/translation-fail
-Accept: application/json
+{ "studentId": 1 }
