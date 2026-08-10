@@ -12,6 +12,7 @@ namespace TmsApi.Api.Controllers;
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
 public class StudentController( IStudentService studentService, LinkGenerator linkGenerator): ControllerBase
 {
+    
     [HttpGet]
     [ProducesResponseType(typeof(PagedResponse<StudentResponseDto>),StatusCodes.Status200OK)]
     [EndpointSummary("List student with pagination")]

@@ -29,19 +29,23 @@ public class GetCoursesHandler(ICachedCourseService cachedService)
         var rows = pageItems
             .Select(c => new CourseListItemDto(
                 c.Id,
-                c.Title,
                 c.Code,
+                c.Title,
                 c.MaxCapacity,
                 c.EnrollmentCount))
             .ToList();
 
         return new GetCoursesResult(
-            rows,
-            totalCount,
-            page,
-            pageSize,
-            totalPages,
-            hasNext,
-            hasPrevious);
+            Data: rows,
+            Meta: new PaginationMeta(
+                TotalCount: totalCount,
+                Page: page,
+                PageSize: pageSize,
+                TotalPages: totalPages,
+                HasNext: hasNext,
+                HasPrevious: hasPrevious
+            ),
+            Links: []
+        );
     }
 }

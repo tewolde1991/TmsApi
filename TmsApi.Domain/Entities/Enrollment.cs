@@ -1,3 +1,5 @@
+using TmsApi.Domain.Enums;
+
 namespace TmsApi.Domain.Entities;
 
 public class Enrollment
@@ -8,6 +10,8 @@ public class Enrollment
     public decimal? Grade {get; set;}
 
     public DateTime EnrolledAt {get; set;} = DateTime.UtcNow;
+    public EnrollmentStatus Status { get; set; }
+
     public int Year { get; set; } = DateTime.UtcNow.Year;
     public bool IsArchived {get; set;} = false;
 

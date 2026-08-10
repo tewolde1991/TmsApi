@@ -39,4 +39,5 @@ command.CourseCode));
             new EnrollmentCreated(enrollment.Id, enrollment.StudentId, 
 course.Code)); 
     }  
+   
 }

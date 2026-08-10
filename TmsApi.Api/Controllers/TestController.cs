@@ -21,9 +21,9 @@ public class TestController(TmsDbContext context) : ControllerBase
         return Ok(results);
     }
 
-    private static bool IsHonorRoll(decimal gpa)
+    private static bool IsHonorRoll(decimal GPA)
     {
-        return gpa >= 3.5m;
+        return GPA >= 3.5m;
     }
 
     [HttpGet("translation-fail")]

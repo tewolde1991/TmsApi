@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TmsApi.Domain.Entities;
+using TmsApi.Domain.Enums;
 
 namespace TmsApi.Infrastructure.Persistence.Configrations;
 
@@ -35,5 +36,9 @@ public class EnrollmentConfigrations : IEntityTypeConfiguration<Enrollment>
 
         builder.Property(e => e.IsArchived)
             .HasDefaultValue(false);
+        builder.Property(e => e.Status)
+            .HasConversion<int>()
+            .HasDefaultValue(EnrollmentStatus.Pending);
     }
+    
 }

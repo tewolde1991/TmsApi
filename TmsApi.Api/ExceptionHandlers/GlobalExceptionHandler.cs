@@ -1,9 +1,6 @@
-using System.Linq;
-using System.Collections.Generic;
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 
 namespace TmsApi.Api.ExceptionHandlers;
 

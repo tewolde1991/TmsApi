@@ -18,10 +18,27 @@ using TmsApi.Infrastructure.Services;
 using IEnrollmentRepository = TmsApi.Application.Interfaces.IEnrollmentRepository;
 using Microsoft.AspNetCore.RateLimiting;
 using TmsApi.Api.RateLimiting;
+using TmsApi.Infrastructure.Transcripts;
+using System.Threading.Channels;
+using TmsApi.Api.Hubs;
+using TmsApi.Api.Notifications;
+using TmsApi.Application.Notifications;
+using TmsApi.Application.Transcripts;
+using TmsApi.Infrastructure.Workers;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // builder.Services.AddOpenApi(); 
-
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngularApp", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(EnrollStudentHandler).Assembly));
 builder.Services.AddValidatorsFromAssembly(typeof(EnrollStudentValidator).Assembly);
 
@@ -37,7 +54,7 @@ builder.Services.AddProblemDetails();
 
 builder.Services.AddApiVersioning(options =>
 {
-    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.DefaultApiVersion = new ApiVersion(2, 0);
     options.AssumeDefaultVersionWhenUnspecified = true;
     options.ReportApiVersions = true;
     options.ApiVersionReader = ApiVersionReader.Combine(new UrlSegmentApiVersionReader(),
@@ -71,7 +88,6 @@ builder.Services.AddProblemDetails();
 // builder.Services.AddTransient<IGradeCalculator, GradeCalculator>();
 builder.Services.AddScoped<StudentService>();
 // Scoped: one instance per HTTP request
-builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 
@@ -88,6 +104,13 @@ builder.Services.AddScoped<ICertificateService, CertificateService>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
+
+builder.Services.AddSingleton(Channel.CreateBounded<TranscriptRequest>(
+    new BoundedChannelOptions(100)
+    {
+        FullMode = BoundedChannelFullMode.Wait
+    }));
+builder.Services.AddHostedService<TranscriptWorker>();
 // builder.Services.AddSwaggerGen();
 
 // // Add services for authentication (training handler)
@@ -198,6 +221,12 @@ builder.Services.AddHybridCache(options =>
 });
 builder.Services.AddHealthChecks();
 builder.Services.AddScoped<ICachedCourseService, CachedCourseService>();
+builder.Services.AddSingleton<ITranscriptStatusStore, InMemoryTranscriptStatusStore>();
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<ITranscriptNotificationService, SignalRTranscriptNotificationService>();
+// builder.Services.AddSignalR().AddStackExchangeRedis(
+//     builder.Configuration.GetConnectionString("Redis")!,
+//     options => options.Configuration.ChannelPrefix = "tms-signalr");
 // // production-only 
 // builder.Services.AddStackExchangeRedisCache(options =>
 // {
@@ -208,6 +237,9 @@ builder.Services.AddScoped<ICachedCourseService, CachedCourseService>();
 // builder.Services.AddHybridCache();
 // };
 var app = builder.Build();
+app.MapHub<TmsHub>("/hubs/tms");
+app.UseHttpsRedirection();
+app.UseCors("AllowAngularApp");
 app.MapHealthChecks("/health/live").DisableRateLimiting();
 app.MapHealthChecks("/health/ready").DisableRateLimiting();
 // 1. Custom logging middleware FIRST (wraps everything)
