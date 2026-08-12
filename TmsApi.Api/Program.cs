@@ -19,12 +19,26 @@ using TmsApi.Infrastructure.Data;
 using TmsApi.Infrastructure.Persistence;
 using TmsApi.Infrastructure.Services;
 using Microsoft.Extensions.Caching.Hybrid;
-using TmsApi.Infrastructure.Caching;
-using Microsoft.Extensions.Options;
-// using TmsApi.Application.Interfaces;
-// using Microsoft.Extensions.Caching.Hybrid;
+using TmsApi.Infrastructure.Transcripts;
+using System.Threading.Channels;
+using TmsApi.Application.Transcripts;
+using TmsApi.Infrastructure.Workers;
+
+
+
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngularApp", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:4200")
+             .AllowAnyHeader()
+             .AllowAnyMethod()
+             .AllowCredentials();
+    });
+});
 
 // -------------------------
 // Register Services
@@ -115,7 +129,7 @@ builder.Services.AddRateLimiter(options =>
                         {
                             TokenLimit = 200,
                             TokensPerPeriod = 100,
-                            ReplenishmentPeriod = TimeSpan.FromSeconds(10),
+                            ReplenishmentPeriod = TimeSpan.FromSeconds(100000),
                             QueueLimit = 0,
                             AutoReplenishment = true
                         }),
@@ -128,7 +142,7 @@ builder.Services.AddRateLimiter(options =>
                         {
                             TokenLimit = 30,
                             TokensPerPeriod = 10,
-                            ReplenishmentPeriod = TimeSpan.FromSeconds(10),
+                            ReplenishmentPeriod = TimeSpan.FromSeconds(100000),
                             QueueLimit = 0,
                             AutoReplenishment = true
                         }),
@@ -141,7 +155,7 @@ builder.Services.AddRateLimiter(options =>
                         {
                             TokenLimit = 10,
                             TokensPerPeriod = 5,
-                            ReplenishmentPeriod = TimeSpan.FromSeconds(10),
+                            ReplenishmentPeriod = TimeSpan.FromSeconds(10000),
                             QueueLimit = 0,
                             AutoReplenishment = true
                         })
@@ -154,7 +168,7 @@ builder.Services.AddRateLimiter(options =>
     options.OnRejected = async (context, ct) =>
     {
         // Retry-After from lease metadata — not hard-coded!
-        var retryAfter = "10";
+        var retryAfter = "100000";
         if (context.Lease.TryGetMetadata(
                 MetadataName.RetryAfter, out var ts))
             retryAfter = ((int)ts.TotalSeconds).ToString();
@@ -190,22 +204,18 @@ builder.Services.AddRateLimiter(options =>
         opt.QueueLimit = 2;
     });
 
-    // Token Bucket — per-second throttle
-    // 10 req / 10s → ok
-    // 11th req   → 429 (tokens empty)
-
-    // Concurrency Limiter — simultaneous limit
-    // 5 transcripts running now → 6th queues (up to 20)
-    // 26th → 429 (queue full)
-
-    // Both apply to /api/v2/transcripts:
-    // 1. GlobalLimiter (token bucket) checks first
-    // 2. "transcripts" (concurrency) checks second
-    // Both must pass → request proceeds
 
 });
 builder.Services.AddHealthChecks();
+builder.Services.AddSingleton<ITranscriptStatusStore, InMemoryTranscriptStatusStore>();
+builder.Services.AddSingleton(Channel.CreateBounded<TranscriptRequest>(
+    new BoundedChannelOptions(100)
+    {
+        FullMode = BoundedChannelFullMode.Wait
+    }));
 
+
+builder.Services.AddHostedService<TranscriptWorker>();
 // App
 var app = builder.Build();
 
@@ -225,7 +235,11 @@ if (app.Environment.IsDevelopment())
 }
 
 
-
+app.UseHttpsRedirection();
+app.UseRouting();
+app.UseCors("AllowAngularApp");
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseMiddleware<V1DeprecationMiddleware>();
@@ -237,7 +251,7 @@ if (app.Environment.IsDevelopment())
     var context = scope.ServiceProvider.GetRequiredService<TmsDbContext>();
     await DataSeeder.SeedAsync(context);
 }
-app.UseRateLimiter();
+// app.UseRateLimiter();
 app.MapHealthChecks("/health/live").DisableRateLimiting();
 app.MapHealthChecks("/health/ready").DisableRateLimiting();
 

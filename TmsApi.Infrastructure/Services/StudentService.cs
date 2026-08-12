@@ -25,7 +25,7 @@ public class StudentService(TmsDbContext context) : IStudentService
                     e.CourseId,
                     e.Course.Code,
                     e.Course.Title))
-                .ToList());
+                    .ToList());
 
     // ---------- READ (single) ----------
     public async Task<StudentResponseDto?> GetByIdAsync(int id, CancellationToken ct)

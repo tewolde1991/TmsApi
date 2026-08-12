@@ -4,7 +4,6 @@ public enum ApiKeyTier { Anonymous, Free, Paid }
 
 public static class ApiKeyResolver
 {
-  // Lookup table — M12 iy DB/JWT iy iyቀይሩ
   private static readonly Dictionary<string, ApiKeyTier> Keys =
       new(StringComparer.Ordinal)
       {

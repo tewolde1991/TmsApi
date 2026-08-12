@@ -1,0 +1,4 @@
+curl http://localhost:5000/api/v2/courses 
+
+###
+curl -i -X POST http://localhost:5000/api/v2/enrollments \ -H "Content-Type: application/json" \ -d '{"studentId":1,"courseCode":"CSE-101"}' 

@@ -90,54 +90,67 @@ public class EnrollmentService(
     ILogger<EnrollmentService> logger) : IEnrollmentService
 {
     // GetByIdAsync — read enrollment by id + courseId
+    // GetByIdAsync
     public Task<EnrollmentResponseDto?> GetByIdAsync(
-        int courseId,
-              int id, CancellationToken ct) =>
+        int courseId, int id, CancellationToken ct) =>
         context.Enrollments
             .AsNoTracking()
             .Where(e => e.Id == id && e.CourseId == courseId)
             .Select(e => new EnrollmentResponseDto(
-                e.Id, e.CourseId, e.StudentId, e.EnrolledAt))
+                e.Id,
+                e.CourseId,
+                e.Course.Code,                                    // CourseCode
+                e.Course.Title,                                   // CourseTitle
+                e.StudentId,
+                e.Student.FirstName + " " + e.Student.LastName,  // StudentName
+                e.IsArchived ? "Archived" : "Active",             // Status
+                e.EnrolledAt
+            ))
             .FirstOrDefaultAsync(ct);
-
     // TODO 2: CreateAsync — insert + save + log + re-query
-    public async Task<EnrollmentResponseDto> CreateAsync(
-        int courseId,
-        EnrollmentStudentRequest request,
-        CancellationToken ct)
-    {
-        // ① create entity
-        var enrollment = new Enrollment
-        {
-            CourseId = courseId,
-            StudentId = request.StudentId,
-            EnrolledAt = DateTime.UtcNow   // timestamp without timezone
-        };
-
-        // ② INSERT SQL
-        context.Enrollments.Add(enrollment);
-        await context.SaveChangesAsync(ct);
-
-        // ③ log
-        logger.LogInformation(
-            "Enrolled student {S} in course {C}",
-            request.StudentId, courseId);
-
-        // ④ re-query → fresh DTO
-        return (await GetByIdAsync(courseId, enrollment.Id, ct))!;
-
-    }
-
-    public void GetAllAsync()
-    {
-        throw new NotImplementedException();
-    }
+    // GetByCourseAsync
     public Task<List<EnrollmentResponseDto>> GetByCourseAsync(
         int courseId, CancellationToken ct) =>
         context.Enrollments
             .AsNoTracking()
             .Where(e => e.CourseId == courseId)
             .Select(e => new EnrollmentResponseDto(
-                e.Id, e.CourseId, e.StudentId, e.EnrolledAt))
+                e.Id,
+                e.CourseId,
+                e.Course.Code,
+                e.Course.Title,
+                e.StudentId,
+                e.Student.FirstName + " " + e.Student.LastName,
+                e.IsArchived ? "Archived" : "Active",
+                e.EnrolledAt
+            ))
             .ToListAsync(ct);
+    public Task<List<EnrollmentResponseDto>> GetAllAsync(CancellationToken ct = default) =>
+     context.Enrollments
+         .AsNoTracking()
+         .Select(e => new EnrollmentResponseDto(
+             e.Id,
+             e.CourseId,
+             e.Course.Code,
+             e.Course.Title,
+             e.StudentId,
+             e.Student.FirstName + " " + e.Student.LastName,
+             e.IsArchived ? "Archived" : "Active",
+             e.EnrolledAt
+         ))
+         .ToListAsync(ct);
+
+    public Task<EnrollmentResponseDto> CreateAsync(int courseId, EnrollmentStudentRequest request, CancellationToken ct)
+    {
+        throw new NotImplementedException();
+    }
+    //     public Task<List<EnrollmentResponseDto>> GetByCourseAsync(
+    //         int courseId, CancellationToken ct) =>
+    //         context.Enrollments
+    //             .AsNoTracking()
+    //             .Where(e => e.CourseId == courseId)
+    //             .Select(e => new EnrollmentResponseDto(
+    //                 e.Id, e.CourseId, e.StudentId, e.EnrolledAt))
+    //             .ToListAsync(ct);
+    // }
 }

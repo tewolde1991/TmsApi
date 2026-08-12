@@ -1,3 +1,4 @@
+using TmsApi.Application.Dtos;
 using TmsApi.Domain.Entities;
 
 namespace TmsApi.Application.Interfaces;
@@ -20,4 +21,9 @@ public interface IEnrollmentRepository
     Task<IEnumerable<Enrollment>> GetByStudentIdAsync(
         int studentId,
         CancellationToken ct = default);
+    Task<IReadOnlyList<EnrollmentResponseDto>> GetAllEnrollmentsAsync(
+        CancellationToken ct = default);
+
+    Task<Enrollment?> GetByIdAsync(int id, CancellationToken ct = default);
+    Task ApproveAsync(int id, CancellationToken ct = default);
 }

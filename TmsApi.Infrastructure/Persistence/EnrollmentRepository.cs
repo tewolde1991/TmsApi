@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TmsApi.Application.Dtos;
 using TmsApi.Application.Interfaces;
 using TmsApi.Domain.Entities;
 
@@ -46,6 +47,37 @@ public class EnrollmentRepository : IEnrollmentRepository
         return await _context.Enrollments
             .Where(e => e.StudentId == studentId)
             .AsNoTracking()
+            .ToListAsync(ct);
+    }
+    public async Task<Enrollment?> GetByIdAsync(int id, CancellationToken ct = default)
+    {
+        return await _context.Enrollments.FindAsync([id], ct);
+    }
+
+    public async Task ApproveAsync(int id, CancellationToken ct = default)
+    {
+        var enrollment = await _context.Enrollments.FindAsync([id], ct);
+        if (enrollment is not null)
+        {
+            enrollment.Status = "Approved";
+            await _context.SaveChangesAsync(ct);
+        }
+    }
+    public async Task<IReadOnlyList<EnrollmentResponseDto>> GetAllEnrollmentsAsync(
+     CancellationToken ct = default)
+    {
+        return await _context.Enrollments
+            .AsNoTracking()
+            .Select(e => new EnrollmentResponseDto(
+                e.Id,
+                e.CourseId,
+                e.Course.Code,
+                e.Course.Title,
+                e.StudentId,
+                e.Student.FirstName + " " + e.Student.LastName,
+                e.IsArchived ? "Archived" : "Active",   // or add a Status field to Enrollment
+                e.EnrolledAt
+            ))
             .ToListAsync(ct);
     }
 }
