@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using TmsApi.Api.RateLimiting;
 using TmsApi.Infrastructure.Transcripts;
 using System.Threading.Channels;
+using Microsoft.AspNetCore.Antiforgery;
 using TmsApi.Api.Hubs;
 using TmsApi.Api.Notifications;
 using TmsApi.Application.Notifications;
@@ -27,16 +28,20 @@ using TmsApi.Application.Transcripts;
 using TmsApi.Infrastructure.Workers;
 
 var builder = WebApplication.CreateBuilder(args);
-
+var allowedOrigins = builder.Configuration
+                         .GetSection("AllowedOrigins").Get<string[]>()
+                     ?? ["http://localhost:4200"];
 // builder.Services.AddOpenApi(); 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAngularApp", policy =>
+    options.AddPolicy("TmsClient", policy =>
     {
         policy
-            .WithOrigins("http://localhost:4200")
+            .WithOrigins(allowedOrigins)
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials()
+            .SetPreflightMaxAge(TimeSpan.FromMinutes(10));
     });
 });
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(EnrollStudentHandler).Assembly));
@@ -224,6 +229,10 @@ builder.Services.AddScoped<ICachedCourseService, CachedCourseService>();
 builder.Services.AddSingleton<ITranscriptStatusStore, InMemoryTranscriptStatusStore>();
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<ITranscriptNotificationService, SignalRTranscriptNotificationService>();
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-XSRF-TOKEN";
+});
 // builder.Services.AddSignalR().AddStackExchangeRedis(
 //     builder.Configuration.GetConnectionString("Redis")!,
 //     options => options.Configuration.ChannelPrefix = "tms-signalr");
@@ -236,10 +245,11 @@ builder.Services.AddSingleton<ITranscriptNotificationService, SignalRTranscriptN
 // });
 // builder.Services.AddHybridCache();
 // };
+
 var app = builder.Build();
 app.MapHub<TmsHub>("/hubs/tms");
 app.UseHttpsRedirection();
-app.UseCors("AllowAngularApp");
+// app.UseCors("AllowAngularApp");
 app.MapHealthChecks("/health/live").DisableRateLimiting();
 app.MapHealthChecks("/health/ready").DisableRateLimiting();
 // 1. Custom logging middleware FIRST (wraps everything)
@@ -259,12 +269,31 @@ app.UseExceptionHandler(exceptionHandlerApp =>
 // // 3. Standard middleware
 // app.UseHttpsRedirection();
 app.UseRouting();
+app.UseCors("TmsClient");
 app.UseRateLimiter();
 // 4. Authentication & Authorization (still before endpoints)
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<V1DeprecationMiddleware>();
+app.Use(async (context, next) =>
+{
+    if (context.User.Identity?.IsAuthenticated == true || context.Request.Cookies.ContainsKey("tms_auth"))
+    {
+        var antiforgery = context.RequestServices
+            .GetRequiredService<IAntiforgery>();
+        var tokens = antiforgery.GetAndStoreTokens(context);
+        context.Response.Cookies.Append("XSRF-TOKEN", tokens.RequestToken!,
+            new CookieOptions
+            {
+                HttpOnly = false,
+                Secure = !builder.Environment.IsDevelopment(),
+                SameSite = SameSiteMode.Strict
+            });
 
+    }
+
+    await next(context);
+});
 app.MapControllers();
 
 
