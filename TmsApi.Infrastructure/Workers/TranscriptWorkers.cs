@@ -11,6 +11,7 @@ public class TranscriptWorker(
     Channel<TranscriptRequest> channel,
     IServiceScopeFactory scopeFactory,
     ITranscriptStatusStore statusStore,
+    Func<string, string, string, Task> notifyStudent,
     ILogger<TranscriptWorker> logger)
     : BackgroundService
 {
@@ -36,11 +37,18 @@ public class TranscriptWorker(
                 var downloadUrl = $"/api/v2/transcripts/{reportId}/download";
                 await statusStore.MarkReadyAsync(reportId, downloadUrl, ct);
 
-                logger.LogInformation("Transcript ready: {ReportId}", reportId);
+                // Push SignalR notification to student's group
+                await notifyStudent(
+                    request.StudentId.ToString(), reportId, downloadUrl);
+
+                logger.LogInformation(
+                    "Transcript ready, notification sent: {ReportId} → student-{StudentId}",
+                    reportId, request.StudentId);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
-                logger.LogWarning("Worker shutdown - transcript {ReportId} did not complete", reportId);
+                logger.LogWarning(
+                    "Worker shutdown; transcript {ReportId} did not complete.", reportId);
                 throw;
             }
             catch (Exception ex)

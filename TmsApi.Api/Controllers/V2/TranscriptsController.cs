@@ -8,65 +8,58 @@ using TmsApi.Infrastructure.Transcripts;
 namespace TmsApi.Api.Controllers.V2;
 
 [ApiController]
-[Route("api/v2/transcripts")]
+[Route("api/v{version:apiVersion}/transcripts")]
 [ApiVersion("2.0")]
-public class TranscriptsController : ControllerBase
+public class TranscriptsController(
+    Channel<TranscriptRequest> channel,
+    ITranscriptStatusStore statusStore) : ControllerBase
 {
-    private readonly Channel<TranscriptRequest> _channel;
-    private readonly ITranscriptStatusStore _statusStore;
-
-    public TranscriptsController(
-        Channel<TranscriptRequest> channel,
-        ITranscriptStatusStore statusStore)
-    {
-        _channel = channel;
-        _statusStore = statusStore;
-    }
-
     [HttpPost]
+    [MapToApiVersion("2.0")]
     [EnableRateLimiting("transcripts")]
     public async Task<IActionResult> RequestTranscript(
-        [FromBody] TranscriptRequest request,
+        TranscriptRequest request,
         [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
         CancellationToken ct)
     {
-        // Check for existing idempotency key
+        // ── Idempotency check ─────────────────────────────────────────────
+        // Same key = same reportId returned, no second worker job enqueued.
         if (!string.IsNullOrWhiteSpace(idempotencyKey))
         {
-            var existing = await _statusStore.GetReportIdForIdempotencyKeyAsync(idempotencyKey, ct);
+            var existing = await statusStore.GetReportIdForIdempotencyKeyAsync(idempotencyKey, ct);
             if (existing is not null)
             {
-                var existingStatus = await _statusStore.GetAsync(existing, ct);
+                var existingStatus = await statusStore.GetAsync(existing, ct);
                 return Accepted(
                     Url.Action(nameof(GetStatus), new { id = existing }),
                     existingStatus);
             }
         }
 
-        // Generate new report ID
+        // ── Create new report ─────────────────────────────────────────────
         var reportId = Guid.NewGuid().ToString("N")[..12];
-        var status = await _statusStore.CreateAsync(reportId, request.StudentId, ct);
+        var status = await statusStore.CreateAsync(reportId, request.StudentId, ct);
 
-        // Link idempotency key if provided
         if (!string.IsNullOrWhiteSpace(idempotencyKey))
-            await _statusStore.LinkIdempotencyKeyAsync(idempotencyKey, reportId, ct);
+            await statusStore.LinkIdempotencyKeyAsync(idempotencyKey, reportId, ct);
 
-        // Queue the work
-        await _channel.Writer.WriteAsync(request.WithReportId(reportId), ct);
+        // Enqueue — channel capacity 100, FullMode = Wait
+        await channel.Writer.WriteAsync(request.WithReportId(reportId), ct);
 
-        // Set retry-after header
+        // Hint: poll again in ~5 s (simulated generation time)
         Response.Headers.RetryAfter = "5";
 
-        // Return 202 Accepted with status URL
         return Accepted(
             Url.Action(nameof(GetStatus), new { id = reportId }),
             status);
     }
 
     [HttpGet("{id}/status")]
+    [MapToApiVersion("2.0")]
     public async Task<IActionResult> GetStatus(string id, CancellationToken ct)
     {
-        var status = await _statusStore.GetAsync(id, ct);
+        var status = await statusStore.GetAsync(id, ct);
+
         return status is null
             ? NotFound(new ProblemDetails
             {
