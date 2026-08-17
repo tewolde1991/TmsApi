@@ -247,8 +247,14 @@ builder.Services.AddAntiforgery(options =>
 // };
 
 var app = builder.Build();
-app.MapHub<TmsHub>("/hubs/tms");
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
+app.UseCors("TmsClient");
+app.UseRouting();
+
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseRateLimiter();
+app.MapHub<TmsHub>("/hubs/tms").RequireCors("TmsClient");
 // app.UseCors("AllowAngularApp");
 app.MapHealthChecks("/health/live").DisableRateLimiting();
 app.MapHealthChecks("/health/ready").DisableRateLimiting();
@@ -268,12 +274,9 @@ app.UseExceptionHandler(exceptionHandlerApp =>
 
 // // 3. Standard middleware
 // app.UseHttpsRedirection();
-app.UseRouting();
-app.UseCors("TmsClient");
-app.UseRateLimiter();
+
 // 4. Authentication & Authorization (still before endpoints)
-app.UseAuthentication();
-app.UseAuthorization();
+
 app.UseMiddleware<V1DeprecationMiddleware>();
 app.Use(async (context, next) =>
 {
