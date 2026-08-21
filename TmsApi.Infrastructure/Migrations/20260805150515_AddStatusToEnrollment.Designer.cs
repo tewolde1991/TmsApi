@@ -145,6 +145,7 @@ namespace TmsApi.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+
                     b.Property<int>("StudentId")
                         .HasColumnType("integer");
 

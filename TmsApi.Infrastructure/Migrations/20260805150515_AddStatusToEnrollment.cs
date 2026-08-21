@@ -16,6 +16,9 @@ namespace TmsApi.Infrastructure.Migrations
                 type: "text",
                 nullable: false,
                 defaultValue: "");
+            migrationBuilder.Sql(
+                    "UPDATE \"Enrollments\" SET \"Status\" = 'Pending';"
+                );
         }
 
         /// <inheritdoc />

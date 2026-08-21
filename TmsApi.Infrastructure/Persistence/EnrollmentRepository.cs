@@ -39,7 +39,6 @@ public class EnrollmentRepository : IEnrollmentRepository
         await _context.SaveChangesAsync(ct);
     }
 
-    // Add this method
     public async Task<IEnumerable<Enrollment>> GetByStudentIdAsync(
         int studentId,
         CancellationToken ct = default)
@@ -49,12 +48,17 @@ public class EnrollmentRepository : IEnrollmentRepository
             .AsNoTracking()
             .ToListAsync(ct);
     }
-    public async Task<Enrollment?> GetByIdAsync(int id, CancellationToken ct = default)
+
+    public async Task<Enrollment?> GetByIdAsync(
+        int id,
+        CancellationToken ct = default)
     {
         return await _context.Enrollments.FindAsync([id], ct);
     }
 
-    public async Task ApproveAsync(int id, CancellationToken ct = default)
+    public async Task ApproveAsync(
+        int id,
+        CancellationToken ct = default)
     {
         var enrollment = await _context.Enrollments.FindAsync([id], ct);
         if (enrollment is not null)
@@ -63,8 +67,22 @@ public class EnrollmentRepository : IEnrollmentRepository
             await _context.SaveChangesAsync(ct);
         }
     }
+
+    // ← New: same pattern as ApproveAsync
+    public async Task RejectAsync(
+        int id,
+        CancellationToken ct = default)
+    {
+        var enrollment = await _context.Enrollments.FindAsync([id], ct);
+        if (enrollment is not null)
+        {
+            enrollment.Status = "Rejected";
+            await _context.SaveChangesAsync(ct);
+        }
+    }
+
     public async Task<IReadOnlyList<EnrollmentResponseDto>> GetAllEnrollmentsAsync(
-     CancellationToken ct = default)
+        CancellationToken ct = default)
     {
         return await _context.Enrollments
             .AsNoTracking()
@@ -75,7 +93,7 @@ public class EnrollmentRepository : IEnrollmentRepository
                 e.Course.Title,
                 e.StudentId,
                 e.Student.FirstName + " " + e.Student.LastName,
-                e.IsArchived ? "Archived" : "Active",   // or add a Status field to Enrollment
+                e.Status,
                 e.EnrolledAt
             ))
             .ToListAsync(ct);

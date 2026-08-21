@@ -5,7 +5,7 @@ using TmsApi.Application.Interfaces;
 
 namespace TmsApi.Application.Commands;
 
-public class EnrollStudentHandler( IEnrollmentRepository enrollmentRepo, ICourseRepository courseRepo)
+public class EnrollStudentHandler(IEnrollmentRepository enrollmentRepo, ICourseRepository courseRepo)
     : IRequestHandler<EnrollStudentCommand, Result<EnrollmentCreated,
 EnrollmentError>>
 {
@@ -21,17 +21,18 @@ EnrollmentError>>
       return Result<EnrollmentCreated, EnrollmentError>.Failure(
           EnrollmentError.CourseFull);
 
-//     if (await enrollmentRepo.ExistsAsync(command.StudentId,
-// command.CourseCode, ct))
-//       return Result<EnrollmentCreated, EnrollmentError>.Failure(
-//           EnrollmentError.AlreadyEnrolled(command.StudentId,
-// command.CourseCode));
+    //     if (await enrollmentRepo.ExistsAsync(command.StudentId,
+    // command.CourseCode, ct))
+    //       return Result<EnrollmentCreated, EnrollmentError>.Failure(
+    //           EnrollmentError.AlreadyEnrolled(command.StudentId,
+    // command.CourseCode));
 
     var enrollment = new Enrollment
     {
       StudentId = command.StudentId,
       CourseId = course.Id,
-      EnrolledAt = DateTime.UtcNow
+      EnrolledAt = DateTime.UtcNow,
+      Status = "Pending"
     };
 
     await enrollmentRepo.AddAsync(enrollment, ct);

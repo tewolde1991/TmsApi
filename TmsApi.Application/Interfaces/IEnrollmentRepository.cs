@@ -26,4 +26,7 @@ public interface IEnrollmentRepository
 
     Task<Enrollment?> GetByIdAsync(int id, CancellationToken ct = default);
     Task ApproveAsync(int id, CancellationToken ct = default);
+    Task RejectAsync(
+            int id,
+            CancellationToken ct = default);
 }
