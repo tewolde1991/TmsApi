@@ -15,7 +15,6 @@ using TmsApi.Application.Behaviors;
 using TmsApi.Application.Enrollments.Commands;
 using TmsApi.Application.Interfaces;
 using TmsApi.Infrastructure.Services;
-using IEnrollmentRepository = TmsApi.Application.Interfaces.IEnrollmentRepository;
 using Microsoft.AspNetCore.RateLimiting;
 using TmsApi.Api.RateLimiting;
 using TmsApi.Infrastructure.Transcripts;
@@ -26,11 +25,30 @@ using TmsApi.Api.Notifications;
 using TmsApi.Application.Notifications;
 using TmsApi.Application.Transcripts;
 using TmsApi.Infrastructure.Workers;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using TmsApi.Infrastructure;
+using System.Text;
+using TmsApi.Application.Authorization;
+using Microsoft.AspNetCore.Authorization;
+using TmsApi.Infrastructure.Identites;
 
 var builder = WebApplication.CreateBuilder(args);
 var allowedOrigins = builder.Configuration
                          .GetSection("AllowedOrigins").Get<string[]>()
                      ?? ["http://localhost:4200"];
+
+var service = new CryptoDemoService();
+string hash1 = service.HashUserPassword("Password123!");
+string hash2 = service.HashUserPassword("Password123!");
+// / Both verify to true against the same plain text:
+bool match1 = service.VerifyUserPassword("Password123!", hash1);// true
+bool match2 = service.VerifyUserPassword("Password123!", hash2);// true
+
+// hash1 and hash2 are completely different strings because of uniquerandom salts!
+Console.WriteLine($"Hash 1: {hash1}");
+Console.WriteLine($"Hash 2: {hash2}");
 // builder.Services.AddOpenApi(); 
 builder.Services.AddCors(options =>
 {
@@ -70,12 +88,12 @@ builder.Services.AddApiVersioning(options =>
     options.GroupNameFormat = "'v'VVV";
     options.SubstituteApiVersionInUrl = true;
 });
-builder.Services.AddOpenApi(documentName:"v1",configureOptions:options =>
+builder.Services.AddOpenApi(documentName: "v1", configureOptions: options =>
 {
     options.ShouldInclude = description =>
         description.GroupName == "v1";
 });
-builder.Services.AddOpenApi(documentName:"v2",configureOptions:options =>
+builder.Services.AddOpenApi(documentName: "v2", configureOptions: options =>
 {
     options.ShouldInclude = description =>
         description.GroupName == "v2";
@@ -83,38 +101,69 @@ builder.Services.AddOpenApi(documentName:"v2",configureOptions:options =>
 
 // register TmsDbContext scoped for incomming http requests
 builder.Services.AddDbContext<TmsDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase"))
-.LogTo(Console.WriteLine, LogLevel.Information) 
-.EnableSensitiveDataLogging());    
+.LogTo(Console.WriteLine, LogLevel.Information)
+.EnableSensitiveDataLogging());
+
+builder.Services.AddIdentityCore<TmsUser>(options =>
+{
+    // enterprise password policy
+    options.Password.RequiredLength = 12;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireDigit = true;
+    options.Password.RequireNonAlphanumeric = true;
+
+    // brute force lockout protection
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+    options.Lockout.AllowedForNewUsers = true;
+})
+.AddRoles<IdentityRole>()
+.AddEntityFrameworkStores<TmsDbContext>();
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
 
 
-// Transient: new instance every time
-// builder.Services.AddTransient<IGradeCalculator, GradeCalculator>();
-builder.Services.AddScoped<StudentService>();
-// Scoped: one instance per HTTP request
-builder.Services.AddScoped<ICourseRepository, CourseRepository>();
-builder.Services.AddScoped<IStudentRepository, StudentRepository>();
-
-// Singleton: one instance for the whole application
-builder.Services.AddSingleton<IConfigReader, ConfigReader>();
-
-// register course service here
-builder.Services.AddScoped<ICourseService, CourseService>();
-
-builder.Services.AddScoped<IStudentService, StudentService>();
-builder.Services.AddScoped<ICertificateService, CertificateService>();
-
-
-builder.Services.AddScoped<ICourseRepository, CourseRepository>();
-builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
-builder.Services.AddScoped<IStudentRepository, StudentRepository>();
+builder.Services.AddInfrastructureServices(builder.Configuration);
 
 builder.Services.AddSingleton(Channel.CreateBounded<TranscriptRequest>(
     new BoundedChannelOptions(100)
     {
         FullMode = BoundedChannelFullMode.Wait
     }));
+
+builder.Services.AddScoped<TokenService>();
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(
+Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+    };
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
+    };
+});
 builder.Services.AddHostedService<TranscriptWorker>();
 // builder.Services.AddSwaggerGen();
 
@@ -138,7 +187,6 @@ builder.Host.UseDefaultServiceProvider(options =>
 //     // options.Filters.Add<AuditLogFilter>();
 // });
 
-
 builder.Services.AddRateLimiter(options =>
 {
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
@@ -157,26 +205,26 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0,
                 AutoReplenishment = true
             }),
-        ApiKeyTier.Free => RateLimitPartition.GetTokenBucketLimiter(
-            partitionKey: $"free: {partitionKey}",
-            factory: _ => new TokenBucketRateLimiterOptions
-            {
-                TokenLimit = 30,
-                TokensPerPeriod = 10,
-                ReplenishmentPeriod = TimeSpan.FromSeconds(10),
-                QueueLimit = 0,
-                AutoReplenishment = true
-            }),
-        _ => RateLimitPartition.GetTokenBucketLimiter(
-            partitionKey: $"ano: {partitionKey}",
-            factory: _ => new TokenBucketRateLimiterOptions
-            {
-                TokenLimit = 10,
-                TokensPerPeriod = 5,
-                ReplenishmentPeriod = TimeSpan.FromSeconds(10),
-                QueueLimit = 0,
-                AutoReplenishment = true
-            })
+            ApiKeyTier.Free => RateLimitPartition.GetTokenBucketLimiter(
+                partitionKey: $"free: {partitionKey}",
+                factory: _ => new TokenBucketRateLimiterOptions
+                {
+                    TokenLimit = 30,
+                    TokensPerPeriod = 10,
+                    ReplenishmentPeriod = TimeSpan.FromSeconds(10),
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                }),
+            _ => RateLimitPartition.GetTokenBucketLimiter(
+                partitionKey: $"ano: {partitionKey}",
+                factory: _ => new TokenBucketRateLimiterOptions
+                {
+                    TokenLimit = 10,
+                    TokensPerPeriod = 5,
+                    ReplenishmentPeriod = TimeSpan.FromSeconds(10),
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                })
 
         };
     });
@@ -246,10 +294,15 @@ builder.Services.AddAntiforgery(options =>
 // builder.Services.AddHybridCache();
 // };
 
+builder.Services.AddAuthorizationBuilder()
+.AddPolicy("CanEditCourse", policy =>
+policy.Requirements.Add(new CourseInstructorRequirement()));
+builder.Services.AddSingleton<IAuthorizationHandler, CourseInstructorHandler>();
+
 var app = builder.Build();
 // app.UseHttpsRedirection();
-app.UseCors("TmsClient");
 app.UseRouting();
+app.UseCors("TmsClient");
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -325,11 +378,11 @@ if (app.Environment.IsDevelopment())
         options.WithTitle("TMS API Reference")
                 .WithTheme(ScalarTheme.DeepSpace)
                 .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient)
-                .WithOpenApiRoutePattern("/api/{documentName}.json");    
-                
-                options
-                        .AddDocument("v1",title: "API Version 1.0")
-                        .AddDocument("v2",title: "API Version 2.0");
+                .WithOpenApiRoutePattern("/api/{documentName}.json");
+
+        options
+                .AddDocument("v1", title: "API Version 1.0")
+                .AddDocument("v2", title: "API Version 2.0");
     });
 }
 

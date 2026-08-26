@@ -1,3 +1,3 @@
 namespace TmsApi.Application.AuthDtos;
 
-public record LoginRequest(string Username, string Password);
+public record LoginRequest(string Email, string password);
