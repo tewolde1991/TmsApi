@@ -50,6 +50,10 @@ bool match2 = service.VerifyUserPassword("Password123!", hash2);// true
 Console.WriteLine($"Hash 1: {hash1}");
 Console.WriteLine($"Hash 2: {hash2}");
 // builder.Services.AddOpenApi(); 
+
+
+var expiryMinutes = builder.Configuration.GetValue<int>("Jwt:ExpiryMinutes");
+Console.WriteLine($"🔐 JWT Expiry Minutes: {expiryMinutes}");
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("TmsClient", policy =>
@@ -144,6 +148,7 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
+         ClockSkew = TimeSpan.Zero,
         ValidateIssuerSigningKey = true,
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
         ValidAudience = builder.Configuration["Jwt:Audience"],
