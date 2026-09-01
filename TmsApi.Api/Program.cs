@@ -1,8 +1,7 @@
-
+using TmsApi.Infrastructure.Data;
 using System.Threading.RateLimiting;
 using Scalar.AspNetCore;
 using TmsApi.Infrastructure.Persistence;
-
 using Microsoft.EntityFrameworkCore;
 using Asp.Versioning;
 using FluentValidation;
@@ -33,6 +32,7 @@ using System.Text;
 using TmsApi.Application.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using TmsApi.Infrastructure.Identites;
+using Tms.Api.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
 var allowedOrigins = builder.Configuration
@@ -74,10 +74,10 @@ builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavi
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
-// builder.Services.AddControllers(options =>
-// {
-//     // options.Filters.Add<AuditLogFilter>();
-// });
+builder.Services.AddControllers(options =>
+ {
+     options.Filters.Add<AuditLogFilter>();
+ });
 
 builder.Services.AddApiVersioning(options =>
 {
@@ -111,7 +111,7 @@ builder.Services.AddDbContext<TmsDbContext>(options => options.UseNpgsql(builder
 builder.Services.AddIdentityCore<TmsUser>(options =>
 {
     // enterprise password policy
-    options.Password.RequiredLength = 12;
+    options.Password.RequiredLength = 8;
     options.Password.RequireUppercase = true;
     options.Password.RequireDigit = true;
     options.Password.RequireNonAlphanumeric = true;
@@ -372,8 +372,11 @@ app.MapControllers();
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
-    // var context = scope.ServiceProvider.GetRequiredService<TmsDbContext>();
-    // await DataSeeder.SeedAsync(context);
+
+    var context = scope.ServiceProvider
+        .GetRequiredService<TmsDbContext>();
+
+    await DataSeeder.SeedAsync(context);
 }
 if (app.Environment.IsDevelopment())
 {

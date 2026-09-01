@@ -11,15 +11,16 @@ public class CreateStudentHandler(IStudentRepository studRepo)
     {
         var student = new Student
         {
-            Name = command.Name,
+            FirstName = command.FirstName,
+            LastName = command.LastName,
             RegistrationNumber = command.RegistrationNumber,
             IsActive = command.IsActive
         };
         await studRepo.AddAsync(student, ct);
-
         return new StudentCreatedDto(
             student.Id,
-            student.Name,
+            student.FirstName,
+            student.LastName,
             student.RegistrationNumber,
             student.IsActive);
     }

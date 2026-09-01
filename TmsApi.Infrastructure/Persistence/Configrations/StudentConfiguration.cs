@@ -20,11 +20,13 @@ public class StudentConfiguration : IEntityTypeConfiguration<Student>
                .HasMaxLength(20)
                .IsRequired();
 
-        builder.Property(s => s.Name)
+        builder.Property(s => s.FirstName)
                .HasMaxLength(100)
                .IsRequired();
 
-        builder.Property(s => s.GPA)
+              builder.Property(s => s.LastName)
+                          .IsRequired();
+              builder.Property(s => s.GPA)
                .HasPrecision(3, 2); // e.g., 3.80
 
         // Relationships

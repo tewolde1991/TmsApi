@@ -6,90 +6,92 @@ using TmsApi.Infrastructure.Persistence;
 
 namespace TmsApi.Infrastructure.Services;
 
-public class StudentService(TmsDbContext context, ILogger<StudentService> logger): IStudentService
+public class StudentService(TmsDbContext context, ILogger<StudentService> logger) : IStudentService
 {
-    public async Task<StudentResponseDto?> GetByIdAsync(
-        int id,  CancellationToken ct )
+    public async Task<StudentResponseDto?> GetByIdAsync(int id, CancellationToken ct)
     {
-   return await context.Students
-                        .AsNoTracking()
-                        .Where(s=>s.Id == id)
-                        .Select(s=> new StudentResponseDto(s.Id,s.RegistrationNumber,s.Name,s.GPA,s.IsActive))
-                        .FirstOrDefaultAsync(ct);
-        
+        return await context.Students
+            .AsNoTracking()
+            .Where(s => s.Id == id)
+            .Select(s => new StudentResponseDto(s.Id, s.RegistrationNumber, s.Name, s.GPA, s.IsActive))
+            .FirstOrDefaultAsync(ct);
     }
 
     public async Task<StudentDetailDto?> GetDetailByIdAsync(int id, CancellationToken ct)
     {
         return await context.Students
-                    .AsNoTracking()
-                    .Where(s=>s.Id == id)
-                    .Select(s=> new StudentDetailDto
-                    {
-                        Id = s.Id,
-                        RegistrationNumber = s.RegistrationNumber,
-                        Name = s.Name,
-                        GPA = s.GPA,
-                        IsActive = s.IsActive,
-                        EnrollmentCount = s.Enrollments.Count,
-                        Links = new List<LinkDto>()
-                    })
-                    .FirstOrDefaultAsync(ct); 
+            .AsNoTracking()
+            .Where(s => s.Id == id)
+            .Select(s => new StudentDetailDto
+            {
+                Id = s.Id,
+                RegistrationNumber = s.RegistrationNumber,
+                Name = s.Name,
+                GPA = s.GPA,
+                IsActive = s.IsActive,
+                EnrollmentCount = s.Enrollments.Count,
+                Links = new List<LinkDto>()
+            })
+            .FirstOrDefaultAsync(ct);
     }
 
-
-public async Task<PagedResponse<StudentResponseDto>> GetStudentsAsync(PagedRequest request, CancellationToken ct)
+    public async Task<PagedResponse<StudentResponseDto>> GetStudentsAsync(PagedRequest request, CancellationToken ct)
     {
         IQueryable<Student> query = context.Students.AsNoTracking();
+
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            query = query.Where(s=>EF.Functions.ILike(s.Name,$"%{request.Search}%") ||
-            EF.Functions.ILike(s.RegistrationNumber, $"%{request.Search}%")); 
-            
+            query = query.Where(s =>
+                EF.Functions.ILike(s.FirstName, $"%{request.Search}%") ||
+                EF.Functions.ILike(s.LastName, $"%{request.Search}%") ||
+                EF.Functions.ILike(s.RegistrationNumber, $"%{request.Search}%"));
         }
+
         var totalCount = await query.CountAsync(ct);
 
         IQueryable<Student> sortedQuery = request.OrderBy switch
         {
             "RegistrationNumber" => request.Descending
-                ? query.OrderByDescending(s=>s.RegistrationNumber)
-                :query.OrderBy(s=>s.RegistrationNumber),
+                ? query.OrderByDescending(s => s.RegistrationNumber)
+                : query.OrderBy(s => s.RegistrationNumber),
             "GPA" => request.Descending
-                ?query.OrderByDescending(s=>s.GPA)
-                :query.OrderBy(s=>s.GPA),
-            _=> request.Descending
-                ?query.OrderByDescending(s=>s.Name)
-                :query.OrderBy(s=>s.Name)
+                ? query.OrderByDescending(s => s.GPA)
+                : query.OrderBy(s => s.GPA),
+            _ => request.Descending
+                ? query.OrderByDescending(s => s.FirstName)
+                : query.OrderBy(s => s.FirstName)
         };
-        var items = await sortedQuery
-                    .Skip((request.Page - 1) * request.PageSize)
-                    .Take(request.PageSize)
-                    .Select(s => new StudentResponseDto(s.Id,s.RegistrationNumber,s.Name,s.GPA,s.IsActive))
-                    .ToListAsync(ct);
 
-            return new PagedResponse<StudentResponseDto>
-            {
-                Items = items,
-                TotalCount = totalCount,
-                Page = request.Page,
-                PageSize = request.PageSize
-            };
+        var items = await sortedQuery
+            .Skip((request.Page - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .Select(s => new StudentResponseDto(s.Id, s.RegistrationNumber, s.Name, s.GPA, s.IsActive))
+            .ToListAsync(ct);
+
+        return new PagedResponse<StudentResponseDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = request.Page,
+            PageSize = request.PageSize
+        };
     }
-    
 
     public async Task<bool> RegistrationNumberExistsAsync(string registrationNumber, CancellationToken ct)
     {
-        return await context.Students.AnyAsync(s=>s.RegistrationNumber == registrationNumber, ct);
+        return await context.Students.AnyAsync(s => s.RegistrationNumber == registrationNumber, ct);
     }
 
     public async Task<StudentResponseDto> CreateAsync(CreateStudentRequest request, CancellationToken ct)
     {
-        if(await RegistrationNumberExistsAsync(request.RegistrationNumber, ct))
-         throw new InvalidOperationException($"Registration number '{request.RegistrationNumber}' already exists.");
+        if (await RegistrationNumberExistsAsync(request.RegistrationNumber, ct))
+            throw new InvalidOperationException($"Registration number '{request.RegistrationNumber}' already exists.");
+
         var student = new Student
         {
             RegistrationNumber = request.RegistrationNumber,
-            Name = request.Name,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
             GPA = 0,
             IsActive = true
         };
@@ -97,25 +99,22 @@ public async Task<PagedResponse<StudentResponseDto>> GetStudentsAsync(PagedReque
         context.Students.Add(student);
         await context.SaveChangesAsync(ct);
 
-        logger.LogInformation("Student {RegistrationNumber} registered with Id {StudentId}",student.RegistrationNumber, student.Id);
+        logger.LogInformation("Student {RegistrationNumber} registered with Id {StudentId}",
+            student.RegistrationNumber, student.Id);
 
-        return new StudentResponseDto(student.Id, student.RegistrationNumber, student.Name, student.GPA,student.IsActive);
+        return new StudentResponseDto(student.Id, student.RegistrationNumber, student.Name, student.GPA, student.IsActive);
     }
 
-
-
-    // new update student with shadow LastUpdated property
-    public async Task<StudentResponseDto> UpdateAsync(
-        int id,
-       UpdateStudentRequest request,
-        CancellationToken ct)
+    public async Task<StudentResponseDto> UpdateAsync(int id, UpdateStudentRequest request, CancellationToken ct)
     {
-        var student = await context.Students.FirstOrDefaultAsync(s =>s.Id == id, ct);
+        var student = await context.Students.FirstOrDefaultAsync(s => s.Id == id, ct);
         if (student is null)
-           throw new InvalidOperationException($"Student with ID {id} not found.");
-        context.Entry(student).Property(s=>s.Version).OriginalValue = request.Version;
+            throw new InvalidOperationException($"Student with ID {id} not found.");
 
-        student.Name = request.Name;
+        context.Entry(student).Property(s => s.Version).OriginalValue = request.Version;
+
+        student.FirstName = request.FirstName;
+        student.LastName = request.LastName;
         student.GPA = request.GPA;
         student.IsActive = request.IsActive;
 
@@ -128,15 +127,11 @@ public async Task<PagedResponse<StudentResponseDto>> GetStudentsAsync(PagedReque
             throw new InvalidOperationException("This student record was modified by someone else. Refresh and try again.");
         }
 
-        return new StudentResponseDto(student.Id, student.RegistrationNumber, student.Name, student.GPA,student.IsActive);
+        return new StudentResponseDto(student.Id, student.RegistrationNumber, student.Name, student.GPA, student.IsActive);
     }
-
-
 
     public Task<PagedResponse<StudentResponseDto>> GetStudentAsync(int id, CancellationToken ct)
     {
         throw new NotImplementedException();
     }
 }
-
-   

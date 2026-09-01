@@ -7,7 +7,7 @@ Transfer-Encoding: chunked
 api-supported-versions: 1.0, 2.0
 Deprecation: true
 Sunset: Thu, 31 Dec 2026 00:00:00 GMT
-Link: <http://localhost:5298/api/v2/courses>; rel="successor-version"
+Link: <http://localhost:1221/api/v2/courses>; rel="successor-version"
 
 {
   "items": [

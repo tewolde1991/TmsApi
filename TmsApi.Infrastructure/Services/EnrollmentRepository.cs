@@ -50,12 +50,12 @@ public class EnrollmentRepository : IEnrollmentRepository
         return await _context.Enrollments
             .AsNoTracking()
             .Select(e => new EnrollmentResponseDto(
-                e.Id,
-                e.Student.Name,
-                e.Course.Title,
-                e.Status.ToString(),
-                e.EnrolledAt
-            ))
+    e.Id,
+    e.Student.FirstName + " " + e.Student.LastName,
+    e.Course.Title,
+    e.Status.ToString(),
+    e.EnrolledAt
+))
             .ToListAsync(ct);
     }
     public async Task<Enrollment?> GetByIdAsync(int id, CancellationToken ct)

@@ -114,4 +114,39 @@ accessToken = newAccessToken,
 refreshToken = newRefreshToken.Token
 });
 }
+[HttpPost("register")]
+public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+{
+    // Check if email already taken
+    var existing = await _userManager.FindByEmailAsync(request.Email);
+    if (existing != null)
+        return Conflict(new { detail = "Email is already registered." });
+
+    // Validate role
+    var allowedRoles = new[] { "Student", "Instructor", "Admin" };
+    if (!allowedRoles.Contains(request.Role))
+        return BadRequest(new { detail = $"Invalid role. Allowed: {string.Join(", ", allowedRoles)}" });
+
+    var user = new TmsUser
+    {
+        UserName = request.Email,
+        Email = request.Email,
+        FirstName = request.FirstName,
+        LastName = request.LastName,
+        EmailConfirmed = true
+    };
+
+    var result = await _userManager.CreateAsync(user, request.Password);
+    if (!result.Succeeded)
+        return BadRequest(new { detail = result.Errors.Select(e => e.Description) });
+
+    // Ensure role exists then assign
+    if (!await _roleManager.RoleExistsAsync(request.Role))
+        await _roleManager.CreateAsync(new IdentityRole(request.Role));
+
+    await _userManager.AddToRoleAsync(user, request.Role);
+
+    return Created($"/api/auth/{user.Id}", new { message = "Registration successful." });
+}
+
 }
